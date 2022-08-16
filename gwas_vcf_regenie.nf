@@ -26,17 +26,6 @@ summary['Launch dir']                     = workflow.launchDir
 summary['Working dir']                    = workflow.workDir
 summary['Script dir']                     = workflow.projectDir
 summary['User']                           = workflow.userName
-
-summary['saige']                          = params.saige
-summary['bolt_lmm']                       = params.bolt_lmm
-summary['regenie']                        = params.regenie
-summary['fastgwa_glmm']                   = params.fastgwa_glmm
-summary['hail']                           = params.hail
-
-summary['genotype_files_list']            = params.genotype_files_list
-summary['genotype_format']                = params.genotype_format
-summary['pheno_data']                     = params.pheno_data
-summary['covariate_cols']                 = params.covariate_cols
 summary['phenotype_colname']              = params.phenotype_colname
 summary['pheno_transform']                = params.pheno_transform
 
@@ -67,16 +56,8 @@ summary['number_pcs']                     = params.number_pcs
 summary['remove_outliers_maxiter']           = params.remove_outliers_maxiter
 summary['remove_outliers_sigma']             = params.remove_outliers_sigma
 
-summary['saige_step1_extra_flags']        = params.saige_step1_extra_flags
-summary['saige_step2_analysis_type']      = params.saige_step2_analysis_type
-summary['saige_container']                = params.saige_container
-
-summary['plink2_gwas_method']             = params.plink2_gwas_method
 
 summary['gwas_cat']                       = params.gwas_cat
-summary['top_n_sites']                    = params.top_n_sites
-
-summary['hail_call_rate_thr']             = params.hail_call_rate_thr
 
 summary['outdir']                         = params.outdir
 
@@ -656,7 +637,7 @@ workflow lifebitai_gwas_vcf_regenie{
     filter_genotypic_data(vcf2plink.out.filteredPlink)
 
     merge_plink(filter_genotypic_data.out.filtered_geno_data.collect())
-    merged_plink = merge_plink.out.plink_merged
+    merged_plink = tuple val("merged"), merge_plink.out.plink_merged
     
     if (params.sex_check) {check_sample_sex(merged_plink)}
 
