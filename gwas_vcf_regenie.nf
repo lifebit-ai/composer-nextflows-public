@@ -571,6 +571,7 @@ process regenie_step2_association_testing {
   tuple val(ancestry_group), val(gwas_tag), val(trait_type), path('phenofile.phe'), path('in.bgen'), path('in.sample'), file(loco), file(pred), file ("covariates.txt"), file ("pheno.txt")
 
   output:
+  tuple val(ancestry_group), val(gwas_tag), file("${ancestry_group}-${gwas_tag}-regenie_firth*.regenie"), emit: regenie_out
   path("${ancestry_group}-${gwas_tag}-regenie_firth*"), emit: regenie_step2_assoc
 
   script:
@@ -590,6 +591,34 @@ process regenie_step2_association_testing {
     --pThresh 0.01 \
     --pred ${pred} \
     --out ${ancestry_group}-${gwas_tag}-regenie_firth
+  """
+}
+
+process munge_regenie {
+  tag "${ancestry_group} ${gwas_tag}"
+  label 'mungesumstats'
+  publishDir "${params.outdir}/${ancestry_group}/${gwas_tag}/regenie", mode: 'copy'
+
+  input:
+  tuple val(ancestry_group), val(gwas_tag), file(regenie_table)
+
+  output:
+  tuple val(ancestry_group), val(gwas_tag), val('regenie'), path("${regenie_table.baseName}.vcf"), emit: summ_stats
+  file("${regenie_table.baseName}.munge.log")
+
+  script:
+  """
+  # rename GENPOS -> BP, remove last column, add col "P" calculated from col "LOG10P" 
+  sed '/^##/d' $regenie_table \
+  | sed '1 s/GENPOS/BP/' \
+  | awk '{NF-=1} NR==1{print \$0, "P"; next} {print \$0, 10^(-\$13)}' \
+  > regenie.tmp
+  mungesumstats.R \
+    --gwas_table=regenie.tmp \
+    --outfile=${regenie_table.baseName}.vcf \
+    ${params.map_pos2rsid ? "--map_pos=TRUE" : ""} \
+    ${params.genome_build ? "--build=${params.genome_build}" : ""} \
+    --ncpus=${task.cpus} 2> ${regenie_table.baseName}.munge.log
   """
 }
 
@@ -637,11 +666,11 @@ workflow lifebitai_gwas_vcf_regenie{
     filter_genotypic_data(vcf2plink.out.filteredPlink)
 
     merge_plink(filter_genotypic_data.out.filtered_geno_data.collect())
-    merged_plink = tuple val("merged"), merge_plink.out.plink_merged
+    merged_plink = tuple "merged", merge_plink.out.plink_merged
     
-    if (params.sex_check) {check_sample_sex(merged_plink)}
+    if (params.sex_check) {check_sample_sex(merge_plink.out.plink_merged)}
 
-    ld_prune(merged_plink,
+    ld_prune(merge_plink.out.plink_merged,
             ch_high_ld_regions)
 
     if (params.remove_related_samples) {
@@ -657,7 +686,6 @@ workflow lifebitai_gwas_vcf_regenie{
       ch_input_for_ancestry_inference = ch_related_filter_keep_files.combine(ch_unrelated_for_ancestry_inference)
 
       infer_ancestry(ch_input_for_ancestry_inference,
-                      ch_ancestry_inference_Rscript,
                       ch_king_reference_data)
 
       ch_ancestry_keep_files = infer_ancestry.out.split_ancestry_keep_files_out
@@ -721,25 +749,33 @@ workflow lifebitai_gwas_vcf_regenie{
 
     ch_aligned_test_vars_out_quant = ch_aligned_test_vars_out.quant
 
-    ch_aligned_test_variants_plink = Channel.empty()
 
     if (ch_aligned_test_vars_out_binary.count() != 0) {
       filter_binary_missingness(ch_aligned_test_vars_out_binary)
-      ch_aligned_test_variants_plink.mix(filter_binary_missingness.out.aligned_test_vars_binary_hwe_filtered)
+      ch_aligned_test_variants_plink = filter_binary_missingness.out.aligned_test_vars_binary_hwe_filtered
+    }
+    if (ch_aligned_test_vars_out_binary.count() == 0) {
+      ch_aligned_test_variants_plink = Channel.empty()
     }
 
     if (ch_aligned_test_vars_out_quant.count() != 0) {
       ch_aligned_test_variants_plink.mix(ch_aligned_test_vars_out_quant)
     }
 
+    //convert2bgen(ch_aligned_test_variants_plink)
     convert2bgen(ch_aligned_test_variants_plink)
 
     regenie_step1_fit_model(convert2bgen.out.merged_bgen)
     regenie_step2_association_testing(regenie_step1_fit_model.out.inputs_for_regenie_step2)
     regenie_association = regenie_step2_association_testing.out.regenie_step2_assoc
-  
+
+    //munge_regenie(regenie_step2_association_testing.out.regenie_out)
+
+    summ_stats = munge_regenie.out.summ_stats
+
   emit:
     regenie_association
+    summ_stats
     merged_plink
 }
 
@@ -770,7 +806,7 @@ workflow{
   //ch_hg38_gff3 = Channel.fromPath("${params.gff3_for_locuszoom}")
 
   projectDir = workflow.projectDir
-  ch_ancestry_inference_Rscript = Channel.fromPath("${projectDir}/bin/Ancestry_Inference.R", followLinks: false)
+  //ch_ancestry_inference_Rscript = Channel.fromPath("${projectDir}/bin/Ancestry_Inference.R", followLinks: false)
   //ch_DTable_Rscript = Channel.fromPath("${projectDir}/bin/DTable.R", followLinks: false)
   //ch_concat_chroms_Rscript = Channel.fromPath("${projectDir}/bin/concat_chroms.R", followLinks: false)
   //ch_convert_output_Rscript = Channel.fromPath("${projectDir}/bin/convert_output.R", followLinks: false)
