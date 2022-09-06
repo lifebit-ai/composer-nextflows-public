@@ -21,45 +21,45 @@ def summary = [:]
 if (workflow.revision) summary['Pipeline Release'] = workflow.revision
 
 //summary['Max Resources']                  = "$params.max_memory memory, $params.max_cpus cpus, $params.max_time time per job"
-summary['Output dir']                     = params.outdir
+summary['Output dir']                     = params.gwas_vcf_regenie_1.outdir
 summary['Launch dir']                     = workflow.launchDir
 summary['Working dir']                    = workflow.workDir
 summary['Script dir']                     = workflow.projectDir
 summary['User']                           = workflow.userName
-summary['phenotype_colname']              = params.phenotype_colname
+summary['phenotype_colname']              = params.gwas_vcf_regenie_1.phenotype_colname
 summary['pheno_transform']                = params.pheno_transform
 
 summary['input_folder_location']          = params.input_folder_location
 summary['file_pattern']                   = params.file_pattern
 summary['file_suffix']                    = params.file_suffix
 summary['index_suffix']                   = params.index_suffix
-summary['number_of_files_to_process']     = params.number_of_files_to_process
+summary['number_of_files_to_process']     = params.gwas_vcf_regenie_1.number_of_files_to_process
 
-summary['q_filter']                       = params.q_filter
-summary['miss_test_p_threshold']          = params.miss_test_p_threshold
-summary['variant_missingness']            = params.miss
-summary['variant_minor_allele_freq']      = params.maf
-summary['variant_minor_allele_count']     = params.mac
+summary['q_filter']                       = params.gwas_vcf_regenie_1.q_filter
+summary['miss_test_p_threshold']          = params.gwas_vcf_regenie_1.miss_test_p_threshold
+summary['variant_missingness']            = params.gwas_vcf_regenie_1.miss
+summary['variant_minor_allele_freq']      = params.gwas_vcf_regenie_1.maf
+summary['variant_minor_allele_count']     = params.gwas_vcf_regenie_1.mac
 summary['hwe_threshold']                  = params.hwe_threshold
-summary['extracted pruned region']        = params.extracted_prune_region
+summary['extracted pruned region']        = params.gwas_vcf_regenie_1.extracted_prune_region
 
-summary['remove_related_samples']         = params.remove_related_samples
-summary['king_coefficient']               = params.king_coefficient
-summary['king_plink_memory']              = params.king_plink_memory
+summary['remove_related_samples']         = params.gwas_vcf_regenie_1.remove_related_samples
+summary['king_coefficient']               = params.gwas_vcf_regenie_1.king_coefficient
+summary['king_plink_memory']              = params.gwas_vcf_regenie_1.king_plink_memory
 
 summary['king_reference_data']            = params.king_reference_data
-summary['run_ancestry_inference']         = params.run_ancestry_inference
-summary['min_subpop_size']                = params.min_subpop_size
+summary['run_ancestry_inference']         = params.gwas_vcf_regenie_1.run_ancestry_inference
+summary['min_subpop_size']                = params.gwas_vcf_regenie_1.min_subpop_size
 
-summary['run_pca']                        = params.run_pca
-summary['number_pcs']                     = params.number_pcs
-summary['remove_outliers_maxiter']           = params.remove_outliers_maxiter
-summary['remove_outliers_sigma']             = params.remove_outliers_sigma
+summary['run_pca']                        = params.gwas_vcf_regenie_1.run_pca
+summary['number_pcs']                     = params.gwas_vcf_regenie_1.number_pcs
+summary['remove_outliers_maxiter']           = params.gwas_vcf_regenie_1.remove_outliers_maxiter
+summary['remove_outliers_sigma']             = params.gwas_vcf_regenie_1.remove_outliers_sigma
 
 
 summary['gwas_cat']                       = params.gwas_cat
 
-summary['outdir']                         = params.outdir
+summary['outdir']                         = params.gwas_vcf_regenie_1.outdir
 
 log.info summary.collect { k,v -> "${k.padRight(18)}: $v" }.join("\n")
 log.info "-\033[2m--------------------------------------------------\033[0m-"
@@ -79,13 +79,13 @@ process standardise_phenofile_and_get_samples {
 
   script:
   """
-  # make dummy transform file to move params.phenotype_colname to 3rd column
+  # make dummy transform file to move params.gwas_vcf_regenie_1.phenotype_colname to 3rd column
   # and IGNORE anything that is not the phenotype column or specified covariate_column
 
-  if [ "${params.phenotype_colname}" = "false" ]; then
+  if [ "${params.gwas_vcf_regenie_1.phenotype_colname}" = "false" ]; then
     pheno_col=\$(head -n 1 original.pheno.tsv | cut -f3 )
   else
-    pheno_col=${params.phenotype_colname}
+    pheno_col=${params.gwas_vcf_regenie_1.phenotype_colname}
   fi
 
   if [ "${params.covariate_cols}" = "ALL" ]; then
@@ -108,7 +108,7 @@ process standardise_phenofile_and_get_samples {
       print \$0 \
     }' original.pheno.tsv > dummmy_transform.tsv
 
-  transform_pheno.R \
+  gwas-vcf-regenie-1-transform_pheno.R \
     --pheno original.pheno.tsv \
     --transform dummmy_transform.tsv \
     --out_prefix ./
@@ -120,7 +120,7 @@ process standardise_phenofile_and_get_samples {
 process vcf2plink {
   tag "$name"
   label 'high_memory'
-  publishDir "${params.outdir}/gwas_filtering", mode: 'copy'
+  publishDir "${params.gwas_vcf_regenie_1.outdir}/gwas_filtering", mode: 'copy'
 
   input:
   tuple val(name), val(chr), file(vcf), file(index)
@@ -135,7 +135,7 @@ process vcf2plink {
   # Download, filter and convert (bcf or vcf.gz) -> vcf.gz
   tail -n +2 ${phe_file}| cut -f2 > samples.txt
   bcftools view -S samples.txt $vcf -Oz -o ${name}_downsampled.vcf.gz
-  bcftools view -q ${params.q_filter} ${name}_downsampled.vcf.gz -Oz -o ${name}_filtered.vcf.gz
+  bcftools view -q ${params.gwas_vcf_regenie_1.q_filter} ${name}_downsampled.vcf.gz -Oz -o ${name}_filtered.vcf.gz
   bcftools index ${name}_filtered.vcf.gz
 
   # Create PLINK binary from vcf.gz
@@ -154,7 +154,7 @@ process vcf2plink {
 
 process filter_genotypic_data {
   tag "$name"
-  publishDir "${params.outdir}/filter_genotypic_data", mode: 'copy'
+  publishDir "${params.gwas_vcf_regenie_1.outdir}/filter_genotypic_data", mode: 'copy'
   input:
   tuple val(name), val(chr), file(bed), file(bim), file(fam)
 
@@ -174,10 +174,10 @@ process filter_genotypic_data {
   plink \
     --bfile ${name}_filtered \
     --allow-no-sex \
-    --mind ${params.mind_threshold} \
-    --geno ${params.miss} \
-    --maf ${params.maf} \
-    --mac ${params.mac} \
+    --mind ${params.gwas_vcf_regenie_1.mind_threshold} \
+    --geno ${params.gwas_vcf_regenie_1.miss} \
+    --maf ${params.gwas_vcf_regenie_1.maf} \
+    --mac ${params.gwas_vcf_regenie_1.mac} \
     --memory ${plink_memory} \
     --1 \
     --keep-allele-order \
@@ -199,7 +199,7 @@ process filter_genotypic_data {
 }
 
 process merge_plink {
-  publishDir "${params.outdir}/merged_plink", mode: 'copy'
+  publishDir "${params.gwas_vcf_regenie_1.outdir}/merged_plink", mode: 'copy'
 
   input:
   path("*")
@@ -230,7 +230,7 @@ process merge_plink {
 
 process check_sample_sex {
   tag "Sex check"
-  publishDir "${params.outdir}/sex_check", mode: 'copy'
+  publishDir "${params.gwas_vcf_regenie_1.outdir}/sex_check", mode: 'copy'
 
   input:
   tuple file('merged.bed'), file('merged.bim'), file('merged.fam')
@@ -253,7 +253,7 @@ process check_sample_sex {
   }
 
 process ld_prune {
-  publishDir "${params.outdir}/merged_pruned_plink", mode: 'copy'
+  publishDir "${params.gwas_vcf_regenie_1.outdir}/merged_pruned_plink", mode: 'copy'
 
   input:
   tuple file('merged.bed'), file('merged.bim'), file('merged.fam')
@@ -264,7 +264,7 @@ process ld_prune {
 
   script:
   plink_memory = extractInt(task.memory.toString()) * 1000
-  extract_options = params.extracted_prune_region ? "--extract merged.prune.in" : ""
+  extract_options = params.gwas_vcf_regenie_1.extracted_prune_region ? "--extract merged.prune.in" : ""
   """
   plink \
   --bfile merged \
@@ -296,11 +296,11 @@ process calculate_relatedness {
     path("relatedness.king.cutoff.in.id"), emit: related_filter_keep_files
 
     script:
-    plink_memory = params.king_plink_memory ? "--memory ${params.king_plink_memory}" : ""
+    plink_memory = params.gwas_vcf_regenie_1.king_plink_memory ? "--memory ${params.gwas_vcf_regenie_1.king_plink_memory}" : ""
     """
     plink2 \
         --bfile ${bim.baseName} \
-        --king-cutoff ${params.king_coefficient} \
+        --king-cutoff ${params.gwas_vcf_regenie_1.king_coefficient} \
         $plink_memory \
         --out relatedness
     """
@@ -308,12 +308,11 @@ process calculate_relatedness {
 
 process infer_ancestry {
     label "tiny_memory"
-    publishDir "${params.outdir}/king_ancestry_inference/", mode: 'copy'
+    publishDir "${params.gwas_vcf_regenie_1.outdir}/king_ancestry_inference/", mode: 'copy'
 
     input:
     tuple file('keep.tsv'), val(name), file('in.bed'), file('in.bim'), file('in.fam')
-    file(ancestry_inference_Rscript)
-    set val(ref_name), file('ref.bed.xz'), file('ref.bim.xz'), file('ref.fam.xz')
+    tuple val(ref_name), file('ref.bed.xz'), file('ref.bim.xz'), file('ref.fam.xz')
 
     output:
     path("*.keep.tsv"), emit: split_ancestry_keep_files_out
@@ -331,13 +330,13 @@ process infer_ancestry {
     plink2 --bfile in --keep inputkeep.tsv --make-bed --out subset
 
     # Swap placeholders with user provided values
-    sed -i "s/PREFIX_PLACEHOLDER/subset/g" Ancestry_Inference.R
+    sed -i "s/PREFIX_PLACEHOLDER/subset/g" gwas-vcf-regenie-1-Ancestry_Inference.R
 
     # calculate PCs
     king -b ref.bed,subset.bed --pca --projection --rplot --prefix subset --cpus ${task.cpus}
 
     # Run ancestry inference script
-    Rscript Ancestry_Inference.R subsetpc.txt subset_popref.txt subset
+    Rscript gwas-vcf-regenie-1-Ancestry_Inference.R subsetpc.txt subset_popref.txt subset
 
     awk 'BEGIN{OFS="\\t"} NR>1{print \$1,\$2 > \$5 ".keep.tsv" }' subset_InferredAncestry.txt
     """
@@ -345,7 +344,7 @@ process infer_ancestry {
 
 process filter_pca {
   tag "${ancestry_group}"
-  publishDir "${params.outdir}/${ancestry_group}/pca/", mode: 'copy'
+  publishDir "${params.gwas_vcf_regenie_1.outdir}/${ancestry_group}/pca/", mode: 'copy'
 
   input:
   tuple val(ancestry_group), file('in.tsv'), val(name), file('in.bed'), file('in.bim'), file('in.fam')
@@ -370,19 +369,19 @@ process filter_pca {
   i=0
   n_outliers=-1
 
-  while [ \$i -le ${params.remove_outliers_maxiter} ] && [ \$n_outliers -ne 0 ]; do
+  while [ \$i -le ${params.gwas_vcf_regenie_1.remove_outliers_maxiter} ] && [ \$n_outliers -ne 0 ]; do
 
     cat plink_remove_ids_*.tsv > all_plink_remove_ids.tsv
 
     if [ \$(wc -l in.fam | cut -d " " -f1) -gt 5000 ]; then
-      plink2 --bfile subset --remove all_plink_remove_ids.tsv --pca ${params.number_pcs} approx --out pca_results_\${i} 1>&2
+      plink2 --bfile subset --remove all_plink_remove_ids.tsv --pca ${params.gwas_vcf_regenie_1.number_pcs} approx --out pca_results_\${i} 1>&2
     else
-      plink2 --bfile subset --remove all_plink_remove_ids.tsv --pca ${params.number_pcs} --out pca_results_\${i} 1>&2
+      plink2 --bfile subset --remove all_plink_remove_ids.tsv --pca ${params.gwas_vcf_regenie_1.number_pcs} --out pca_results_\${i} 1>&2
     fi
 
-    pca_outliers.R --input=pca_results_\${i}.eigenvec \
+    gwas-vcf-regenie-1-pca_outliers.R --input=pca_results_\${i}.eigenvec \
       --out=plink_remove_ids_\${i}.tsv \
-      --sigma=${params.remove_outliers_sigma} > remove_outliers_\${i}.log
+      --sigma=${params.gwas_vcf_regenie_1.remove_outliers_sigma} > remove_outliers_\${i}.log
 
     n_outliers=\$(wc -l plink_remove_ids_\${i}.tsv | cut -d " " -f1)
     i=\$[\$i+1]
@@ -407,7 +406,7 @@ process transform_phenofile {
 
   script:
   """
-  transform_pheno.R --pheno ${original_pheno} --transform ${transform_tsv} --out_prefix ./
+  gwas-vcf-regenie-1-transform_pheno.R --pheno ${original_pheno} --transform ${transform_tsv} --out_prefix ./
   """
 
 }
@@ -455,7 +454,7 @@ process add_pcs_to_pheno {
 
 process align_pheno_with_test_variant_plink {
   tag "${ancestry_group} ${gwas_tag}"
-  publishDir "${params.outdir}/${ancestry_group}/${gwas_tag}/", mode: 'copy'
+  publishDir "${params.gwas_vcf_regenie_1.outdir}/${ancestry_group}/${gwas_tag}/", mode: 'copy'
 
   input:
   tuple val(ancestry_group), val(gwas_tag), file('phenofile.phe')
@@ -480,7 +479,7 @@ process align_pheno_with_test_variant_plink {
 
 process filter_binary_missingness {
     tag "${ancestry_group} ${gwas_tag}"
-    publishDir "${params.outdir}/${ancestry_group}/${gwas_tag}/", mode: 'copy'
+    publishDir "${params.gwas_vcf_regenie_1.outdir}/${ancestry_group}/${gwas_tag}/", mode: 'copy'
 
     input:
     tuple val(ancestry_group), val(gwas_tag), val(trait_type), file('phenofile.phe'), file('in.bed'), file('in.bim'), file('in.fam')
@@ -500,7 +499,7 @@ process filter_binary_missingness {
       --out hwe \
       --keep-allele-order \
 
-    awk '\$5 < ${params.miss_test_p_threshold} {print \$2 }' hwe.missing > hwe.missing_FAIL
+    awk '\$5 < ${params.gwas_vcf_regenie_1.miss_test_p_threshold} {print \$2 }' hwe.missing > hwe.missing_FAIL
 
     plink --bfile in \
       --keep-allele-order \
@@ -531,7 +530,7 @@ process convert2bgen   {
 process regenie_step1_fit_model {
   tag "${ancestry_group} ${gwas_tag}"
   label 'regenie'
-  publishDir "${params.outdir}/${ancestry_group}/${gwas_tag}/regenie/", mode: 'copy', pattern: "${ancestry_group}-${gwas_tag}-regenie_step1*"
+  publishDir "${params.gwas_vcf_regenie_1.outdir}/${ancestry_group}/${gwas_tag}/regenie/", mode: 'copy', pattern: "${ancestry_group}-${gwas_tag}-regenie_step1*"
 
   input:
   tuple val(ancestry_group), val(gwas_tag), val(trait_type), file('phenofile.phe'), file('in.bgen'), file('in.sample')
@@ -565,7 +564,7 @@ process regenie_step1_fit_model {
 process regenie_step2_association_testing {
   tag "${ancestry_group} ${gwas_tag}"
   label 'regenie'
-  publishDir "${params.outdir}/${ancestry_group}/${gwas_tag}/regenie", mode: 'copy'
+  publishDir "${params.gwas_vcf_regenie_1.outdir}/${ancestry_group}/${gwas_tag}/regenie", mode: 'copy'
 
   input:
   tuple val(ancestry_group), val(gwas_tag), val(trait_type), path('phenofile.phe'), path('in.bgen'), path('in.sample'), file(loco), file(pred), file ("covariates.txt"), file ("pheno.txt")
@@ -585,8 +584,8 @@ process regenie_step2_association_testing {
     --bsize 200 \
     --threads ${task.cpus} \
     ${trait_type == "binary" ? '--bt' : ''} \
-    --minMAC ${params.regenie_min_mac} \
-    --minINFO ${params.regenie_min_imputation_score} \
+    --minMAC ${params.gwas_vcf_regenie_1.regenie_min_mac} \
+    --minINFO ${params.gwas_vcf_regenie_1.regenie_min_imputation_score} \
     --firth --approx \
     --pThresh 0.01 \
     --pred ${pred} \
@@ -597,7 +596,7 @@ process regenie_step2_association_testing {
 process munge_regenie {
   tag "${ancestry_group} ${gwas_tag}"
   label 'mungesumstats'
-  publishDir "${params.outdir}/${ancestry_group}/${gwas_tag}/regenie", mode: 'copy'
+  publishDir "${params.gwas_vcf_regenie_1.outdir}/${ancestry_group}/${gwas_tag}/regenie", mode: 'copy'
 
   input:
   tuple val(ancestry_group), val(gwas_tag), file(regenie_table)
@@ -647,7 +646,7 @@ def defineFormatList() {
     ]
 }
 
-workflow lifebitai_gwas_vcf_regenie{
+workflow gwas_vcf_regenie_1{
   take:
     ch_user_input_vcf
     ch_king_reference_data
@@ -668,22 +667,22 @@ workflow lifebitai_gwas_vcf_regenie{
     merge_plink(filter_genotypic_data.out.filtered_geno_data.collect())
     merged_plink = tuple "merged", merge_plink.out.plink_merged
     
-    if (params.sex_check) {check_sample_sex(merge_plink.out.plink_merged)}
+    if (params.gwas_vcf_regenie_1.sex_check) {check_sample_sex(merge_plink.out.plink_merged)}
 
     ld_prune(merge_plink.out.plink_merged,
             ch_high_ld_regions)
 
-    if (params.remove_related_samples) {
+    if (params.gwas_vcf_regenie_1.remove_related_samples) {
       calculate_relatedness(ld_prune.out.pruned_variants)
       ch_related_filter_keep_files = calculate_relatedness.out.related_filter_keep_files
     } 
     
-    if (!params.remove_related_samples) {
+    if (!params.gwas_vcf_regenie_1.remove_related_samples) {
       ch_related_filter_keep_files = ch_samples_for_no_related_filter
     }
 
-    if (params.run_ancestry_inference) {
-      ch_input_for_ancestry_inference = ch_related_filter_keep_files.combine(ch_unrelated_for_ancestry_inference)
+    if (params.gwas_vcf_regenie_1.run_ancestry_inference) {
+      ch_input_for_ancestry_inference = ch_related_filter_keep_files.combine(ld_prune.out.pruned_variants)
 
       infer_ancestry(ch_input_for_ancestry_inference,
                       ch_king_reference_data)
@@ -691,21 +690,21 @@ workflow lifebitai_gwas_vcf_regenie{
       ch_ancestry_keep_files = infer_ancestry.out.split_ancestry_keep_files_out
                                   .flatMap()
                                   .map{[it.simpleName, it] }
-                                  .filter{ it[1].readLines().size() >= params.min_subpop_size }
+                                  .filter{ it[1].readLines().size() >= params.gwas_vcf_regenie_1.min_subpop_size }
     } 
 
-    if (!params.run_ancestry_inference) {
+    if (!params.gwas_vcf_regenie_1.run_ancestry_inference) {
         ch_ancestry_keep_files = ch_related_filter_keep_files
           .map{["allancs"] + [it] }
     }
 
-    if (params.run_pca) {
+    if (params.gwas_vcf_regenie_1.run_pca) {
       ch_input_for_pca = ch_ancestry_keep_files.combine(ld_prune.out.pruned_variants)
       filter_pca(ch_input_for_pca)
       ch_pca_keep_files = filter_pca.out.pca_keep_files
     }
 
-    if (!params.run_pca) {
+    if (!params.gwas_vcf_regenie_1.run_pca) {
       ch_pca_keep_files = ch_ancestry_keep_files
     }
 
@@ -725,13 +724,13 @@ workflow lifebitai_gwas_vcf_regenie{
     create_ancestry_x_transform_pheno(ch_transformed_phenos,
                                       ch_pca_keep_files)
     
-    if (params.run_pca) {
+    if (params.gwas_vcf_regenie_1.run_pca) {
       ch_input_for_add_pcs = filter_pca.out.pca_results.combine(create_ancestry_x_transform_pheno.out.crossed_pheno_out, by:0)
       add_pcs_to_pheno(ch_input_for_add_pcs)
       ch_final_phenos = add_pcs_to_pheno.out.final_phenos
     }
 
-    if (!params.run_pca) {
+    if (!params.gwas_vcf_regenie_1.run_pca) {
       ch_final_phenos = create_ancestry_x_transform_pheno.out.crossed_pheno_out
     }
 
@@ -771,12 +770,13 @@ workflow lifebitai_gwas_vcf_regenie{
 
     //munge_regenie(regenie_step2_association_testing.out.regenie_out)
 
-    summ_stats = munge_regenie.out.summ_stats
+    //summ_stats = munge_regenie.out.summ_stats
+    output2 = merged_plink
 
   emit:
     regenie_association
-    summ_stats
-    merged_plink
+    //summ_stats
+    output2
 }
 
 
@@ -790,7 +790,7 @@ workflow{
         .groupTuple(by:0)
         .map { chr, files_pair -> [ chr, files_pair[0], files_pair[1] ] }
         .map { chr, vcf, index -> [ file(vcf).simpleName, chr, file(vcf), file(index) ] }
-        .take( params.number_of_files_to_process )
+        .take( params.gwas_vcf_regenie_1.number_of_files_to_process )
   }
 
   // KING tool for ancestry inference reference data
@@ -806,14 +806,14 @@ workflow{
   //ch_hg38_gff3 = Channel.fromPath("${params.gff3_for_locuszoom}")
 
   projectDir = workflow.projectDir
-  //ch_ancestry_inference_Rscript = Channel.fromPath("${projectDir}/bin/Ancestry_Inference.R", followLinks: false)
+  //ch_ancestry_inference_Rscript = Channel.fromPath("${projectDir}/bin/gwas-vcf-regenie-1-Ancestry_Inference.R", followLinks: false)
   //ch_DTable_Rscript = Channel.fromPath("${projectDir}/bin/DTable.R", followLinks: false)
   //ch_concat_chroms_Rscript = Channel.fromPath("${projectDir}/bin/concat_chroms.R", followLinks: false)
   //ch_convert_output_Rscript = Channel.fromPath("${projectDir}/bin/convert_output.R", followLinks: false)
   //ch_gwas_report_Rmd = Channel.fromPath("${projectDir}/bin/gwas_report.Rmd", followLinks: false)
   //ch_logo_png = Channel.fromPath("${projectDir}/bin/logo.png", followLinks: false)
   //ch_manhattan_Rscript = Channel.fromPath("${projectDir}/bin/manhattan.R", followLinks: false)
-  //ch_pca_outliers_Rscript = Channel.fromPath("${projectDir}/bin/pca_outliers.R", followLinks: false)
+  //ch_gwas-vcf-regenie-1-pca_outliers.Rscript = Channel.fromPath("${projectDir}/bin/gwas-vcf-regenie-1-pca_outliers.R", followLinks: false)
   //ch_qqplot_Rscript = Channel.fromPath("${projectDir}/bin/qqplot.R", followLinks: false)
   //ch_sanitise_Rscriptch_sanitise_Rscript = Channel.fromPath("${projectDir}/bin/sanitise.R", followLinks: false)
   //ch_style_css = Channel.fromPath("${projectDir}/bin/style.css", followLinks: false)
@@ -829,7 +829,7 @@ workflow{
     .ifEmpty { exit 1, "Cannot find CSV VCFs file : ${params.genotype_files_list}" }
     .splitCsv(skip:1)
     .map { chr, vcf, index -> [file(vcf).simpleName, chr, file(vcf), file(index)] }
-    .take( params.number_of_files_to_process )
+    .take( params.gwas_vcf_regenie_1.number_of_files_to_process )
   
   ch_high_ld_regions = Channel
     .fromPath(params.high_LD_long_range_regions)
