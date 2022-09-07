@@ -665,7 +665,9 @@ workflow gwas_vcf_regenie_1{
     filter_genotypic_data(vcf2plink.out.filteredPlink)
 
     merge_plink(filter_genotypic_data.out.filtered_geno_data.collect())
-    merged_plink = tuple "merged", merge_plink.out.plink_merged
+    merged_plink = "merged"
+    merged_plink.combine(merge_plink.out.plink_merged)
+    merged_plink.view()
     
     if (params.gwas_vcf_regenie_1.sex_check) {check_sample_sex(merge_plink.out.plink_merged)}
 
