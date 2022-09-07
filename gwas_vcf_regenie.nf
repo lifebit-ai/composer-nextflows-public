@@ -206,7 +206,7 @@ process merge_plink {
 
   output:
   tuple path('merged.bed'), path('merged.bim'), path('merged.fam'), emit: plink_merged
-  tuple "merged", path('merged.bed'), path('merged.bim'), path('merged.fam'), emit: plink_merged_for_output
+  tuple val("merged"), path('merged.bed'), path('merged.bim'), path('merged.fam'), emit: plink_merged_for_output
 
   script:
   plink_memory = extractInt(task.memory.toString()) * 1000
