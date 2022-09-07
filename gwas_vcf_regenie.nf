@@ -206,6 +206,7 @@ process merge_plink {
 
   output:
   tuple path('merged.bed'), path('merged.bim'), path('merged.fam'), emit: plink_merged
+  tuple "merged", path('merged.bed'), path('merged.bim'), path('merged.fam'), emit: plink_merged_for_output
 
   script:
   plink_memory = extractInt(task.memory.toString()) * 1000
@@ -665,9 +666,6 @@ workflow gwas_vcf_regenie_1{
     filter_genotypic_data(vcf2plink.out.filteredPlink)
 
     merge_plink(filter_genotypic_data.out.filtered_geno_data.collect())
-    merged_plink = "merged"
-    merged_plink.combine(merge_plink.out.plink_merged)
-    merged_plink.view()
     
     if (params.gwas_vcf_regenie_1.sex_check) {check_sample_sex(merge_plink.out.plink_merged)}
 
@@ -773,7 +771,7 @@ workflow gwas_vcf_regenie_1{
     //munge_regenie(regenie_step2_association_testing.out.regenie_out)
 
     //summ_stats = munge_regenie.out.summ_stats
-    output2 = merged_plink
+    output2 = merge_plink.out.plink_merged_for_output
 
   emit:
     regenie_association
