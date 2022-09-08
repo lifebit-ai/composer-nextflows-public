@@ -108,7 +108,7 @@ process standardise_phenofile_and_get_samples {
       print \$0 \
     }' original.pheno.tsv > dummmy_transform.tsv
 
-  gwas-vcf-regenie-1-transform_pheno.R \
+  transform_pheno.R \
     --pheno original.pheno.tsv \
     --transform dummmy_transform.tsv \
     --out_prefix ./
@@ -331,13 +331,13 @@ process infer_ancestry {
     plink2 --bfile in --keep inputkeep.tsv --make-bed --out subset
 
     # Swap placeholders with user provided values
-    sed -i "s/PREFIX_PLACEHOLDER/subset/g" gwas-vcf-regenie-1-Ancestry_Inference.R
+    sed -i "s/PREFIX_PLACEHOLDER/subset/g" Ancestry_Inference.R
 
     # calculate PCs
     king -b ref.bed,subset.bed --pca --projection --rplot --prefix subset --cpus ${task.cpus}
 
     # Run ancestry inference script
-    Rscript gwas-vcf-regenie-1-Ancestry_Inference.R subsetpc.txt subset_popref.txt subset
+    Rscript Ancestry_Inference.R subsetpc.txt subset_popref.txt subset
 
     awk 'BEGIN{OFS="\\t"} NR>1{print \$1,\$2 > \$5 ".keep.tsv" }' subset_InferredAncestry.txt
     """
@@ -380,7 +380,7 @@ process filter_pca {
       plink2 --bfile subset --remove all_plink_remove_ids.tsv --pca ${params.gwas_vcf_regenie_1.number_pcs} --out pca_results_\${i} 1>&2
     fi
 
-    gwas-vcf-regenie-1-pca_outliers.R --input=pca_results_\${i}.eigenvec \
+    pca_outliers.R --input=pca_results_\${i}.eigenvec \
       --out=plink_remove_ids_\${i}.tsv \
       --sigma=${params.gwas_vcf_regenie_1.remove_outliers_sigma} > remove_outliers_\${i}.log
 
@@ -407,7 +407,7 @@ process transform_phenofile {
 
   script:
   """
-  gwas-vcf-regenie-1-transform_pheno.R --pheno ${original_pheno} --transform ${transform_tsv} --out_prefix ./
+  transform_pheno.R --pheno ${original_pheno} --transform ${transform_tsv} --out_prefix ./
   """
 
 }
@@ -806,14 +806,14 @@ workflow{
   //ch_hg38_gff3 = Channel.fromPath("${params.gff3_for_locuszoom}")
 
   projectDir = workflow.projectDir
-  //ch_ancestry_inference_Rscript = Channel.fromPath("${projectDir}/bin/gwas-vcf-regenie-1-Ancestry_Inference.R", followLinks: false)
+  //ch_ancestry_inference_Rscript = Channel.fromPath("${projectDir}/bin/Ancestry_Inference.R", followLinks: false)
   //ch_DTable_Rscript = Channel.fromPath("${projectDir}/bin/DTable.R", followLinks: false)
   //ch_concat_chroms_Rscript = Channel.fromPath("${projectDir}/bin/concat_chroms.R", followLinks: false)
   //ch_convert_output_Rscript = Channel.fromPath("${projectDir}/bin/convert_output.R", followLinks: false)
   //ch_gwas_report_Rmd = Channel.fromPath("${projectDir}/bin/gwas_report.Rmd", followLinks: false)
   //ch_logo_png = Channel.fromPath("${projectDir}/bin/logo.png", followLinks: false)
   //ch_manhattan_Rscript = Channel.fromPath("${projectDir}/bin/manhattan.R", followLinks: false)
-  //ch_gwas-vcf-regenie-1-pca_outliers.Rscript = Channel.fromPath("${projectDir}/bin/gwas-vcf-regenie-1-pca_outliers.R", followLinks: false)
+  //ch_pca_outliers.Rscript = Channel.fromPath("${projectDir}/bin/pca_outliers.R", followLinks: false)
   //ch_qqplot_Rscript = Channel.fromPath("${projectDir}/bin/qqplot.R", followLinks: false)
   //ch_sanitise_Rscriptch_sanitise_Rscript = Channel.fromPath("${projectDir}/bin/sanitise.R", followLinks: false)
   //ch_style_css = Channel.fromPath("${projectDir}/bin/style.css", followLinks: false)
