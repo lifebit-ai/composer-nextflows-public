@@ -609,8 +609,8 @@ process munge_regenie {
   mungesumstats.R \
     --gwas_table=regenie.tmp \
     --outfile=${regenie_table.baseName}.vcf \
-    ${params.gwas_vcf_regenie.map_pos2rsid ? "--map_pos=TRUE" : ""} \
-    ${params.gwas_vcf_regenie.genome_build ? "--build=${params.gwas_vcf_regenie.genome_build}" : ""} \
+    ${params.map_pos2rsid ? "--map_pos=TRUE" : ""} \
+    ${params.genome_build ? "--build=${params.genome_build}" : ""} \
     --ncpus=${task.cpus} 2> ${regenie_table.baseName}.munge.log
   """
 }
