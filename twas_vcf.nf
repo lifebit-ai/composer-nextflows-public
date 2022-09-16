@@ -22,7 +22,7 @@ process transform_gwas_vcf {
         echo $params.gwas_sample_size >> n_col.txt
     done
     paste -d " " temp.txt n_col.txt > base.data
-    python3 calculate_z.py -i base.data -o transformed_gwas_vcf.txt
+    calculate_z.py -i base.data -o transformed_gwas_vcf.txt
     bgzip transformed_gwas_vcf.txt
     """
 
@@ -34,7 +34,7 @@ process add_annotations {
 
     input:
     file(vcf_sumstats)
-    file(ref_fasta) 
+    file(ref_fasta)
     file(ref_fasta_index) 
     file(gene_annotations) 
     file(codon_file) 
@@ -76,7 +76,7 @@ process ptwas_scan {
     """
   }
 
-workflow lifebitaixf_twas_vcf{
+workflow lifebitai_twas_vcf{
 
     take:
         ch_gene_annotations
@@ -92,20 +92,64 @@ workflow lifebitaixf_twas_vcf{
     main:
 
         // Define channels from repository files
-        ch_ptwas_gwas_sumstats = params.annotate_vcf ? transform_gwas_vcf.out.transformed_gwas_vcf : ch_transformed_gwas_vcf
 
         transform_gwas_vcf(ch_gwas_sumstats)
 
         add_annotations(transform_gwas_vcf.out.transformed_gwas_vcf,
-                        ch_ref_fasta,
-                        ch_ref_fasta_index,
-                        ch_gene_annotations,
-                        ch_codon_file,
-                        ch_priority_file)
+                    ch_ref_fasta,
+                    ch_ref_fasta_index,
+                    ch_gene_annotations,
+                    ch_codon_file,
+                    ch_priority_file)
 
         ptwas_scan(add_annotations.out.annot_transformed_gwas,
                     ch_ld_reference,
                     ch_eqtl_weights)
+
     emit:
         ptwas_scan.out.gambit_output
+}
+
+workflow {
+    
+    ch_gwas_sumstats = Channel
+        .fromPath("${params.gwas_summary_statistics}")
+        .ifEmpty { exit 1, "GWAS summary statistics file not found: ${params.gwas_summary_statistics}" }
+
+    ch_ld_reference = Channel
+    .fromPath("${params.ld_reference_panel}")
+    .ifEmpty { exit 1, "File with LD reference panel not found: ${params.ld_reference_panel}" }
+
+    ch_eqtl_weights = Channel
+    .fromPath("${params.eqtl_weights}")
+    .ifEmpty { exit 1, "File with eQTL weights not found: ${params.eqtl_weights}" }
+
+    ch_gene_annotations = Channel
+    .fromPath("${params.gene_annotations}")
+    .ifEmpty { exit 1, "File with gene annotations not found: ${params.gene_annotations}" }
+
+    ch_codon_file = Channel
+    .fromPath("${params.codons}")
+    .ifEmpty { exit 1, "File with codons not found: ${params.codons}" }
+
+    ch_priority_file = Channel
+    .fromPath("${params.priority_file}")
+    .ifEmpty { exit 1, "Priority file not found: ${params.priority_file}" }
+
+    ch_ref_fasta = Channel
+        .fromPath("${params.ref_fasta}")
+        .ifEmpty { exit 1, "Reference genome not found: ${params.ref_fasta}" }
+    
+    ch_ref_fasta_index = Channel
+        .fromPath("${params.ref_fasta_index}")
+        .ifEmpty { exit 1, "Reference genome index not found: ${params.ref_fasta_index}" }
+
+    lifebitai_twas_vcf(ch_gene_annotations,
+                        ch_codon_file,
+                        ch_priority_file,
+                        ch_ref_fasta,
+                        ch_ref_fasta_index,
+                        ch_ld_reference,
+                        ch_eqtl_weights,
+                        ch_gwas_sumstats)
 }
