@@ -597,7 +597,7 @@ process munge_regenie {
 
   output:
   tuple val(ancestry_group), val(gwas_tag), val('regenie'), path("${regenie_table.baseName}.vcf"), emit: summ_stats
-  file("${regenie_table.baseName}.munge.log")
+  path("${regenie_table.baseName}.munge.log")
 
   script:
   """
@@ -640,7 +640,7 @@ def defineFormatList() {
     ]
 }
 
-workflow lifebit_gwas_vcf_regenie{
+workflow lifebitai_gwas_vcf_regenie{
   take:
     ch_user_input_vcf
     ch_king_reference_data
@@ -766,14 +766,16 @@ workflow lifebit_gwas_vcf_regenie{
     regenie_step2_association_testing(regenie_step1_fit_model.out.inputs_for_regenie_step2)
     regenie_association = regenie_step2_association_testing.out.regenie_step2_assoc
 
-    //munge_regenie(regenie_step2_association_testing.out.regenie_out)
+    munge_regenie(regenie_step2_association_testing.out.regenie_out)
 
-    //summ_stats = munge_regenie.out.summ_stats
+    summ_stats = munge_regenie.out.summ_stats
+
+    merged_plink = merge_plink.out.plink_merged_for_output
 
   emit:
     regenie_association
-    //summ_stats
-    merge_plink.out.plink_merged_for_output
+    summ_stats
+    merged_plink
 }
 
 
@@ -810,7 +812,7 @@ workflow{
   //ch_gwas_report_Rmd = Channel.fromPath("${projectDir}/bin/gwas_report.Rmd", followLinks: false)
   //ch_logo_png = Channel.fromPath("${projectDir}/bin/logo.png", followLinks: false)
   //ch_manhattan_Rscript = Channel.fromPath("${projectDir}/bin/manhattan.R", followLinks: false)
-  //ch_pca_outliers.Rscript = Channel.fromPath("${projectDir}/bin/pca_outliers.R", followLinks: false)
+  //ch_pca_outliers_Rscript = Channel.fromPath("${projectDir}/bin/pca_outliers.R", followLinks: false)
   //ch_qqplot_Rscript = Channel.fromPath("${projectDir}/bin/qqplot.R", followLinks: false)
   //ch_sanitise_Rscriptch_sanitise_Rscript = Channel.fromPath("${projectDir}/bin/sanitise.R", followLinks: false)
   //ch_style_css = Channel.fromPath("${projectDir}/bin/style.css", followLinks: false)
