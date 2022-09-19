@@ -655,7 +655,7 @@ workflow lifebitai_gwas_vcf_regenie{
 
 
     ch_input_vcf = ch_user_input_vcf.splitCsv(skip:1)
-                .map { chr, vcf, index -> [path(vcf).simpleName, chr, path(vcf), path(index)] }
+                .map { chr, vcf, index -> [file(vcf).simpleName, chr, file(vcf), file(index)] }
                 .take( 3 )
 
     vcf2plink(ch_input_vcf,
