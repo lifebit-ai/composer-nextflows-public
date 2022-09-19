@@ -64,7 +64,7 @@ Pre-GWAS filtering - download, filter and convert VCFs
 ---------------------------------------------------*/
 process standardise_phenofile_and_get_samples {
   input:
-  file('original.pheno.tsv')
+  path('original.pheno.tsv')
 
   output:
   path("notransform.phe"), emit: pheno_no_transform
@@ -116,8 +116,8 @@ process vcf2plink {
   publishDir "${params.outdir}/gwas_filtering", mode: 'copy'
 
   input:
-  tuple val(name), val(chr), file(vcf), file(index)
-  each file(phe_file)
+  tuple val(name), val(chr), path(vcf), path(index)
+  each path(phe_file)
 
   output:
   tuple val(name), val(chr), path('*.bed'), path('*.bim'), path('*.fam'), emit: filteredPlink
@@ -149,7 +149,7 @@ process filter_genotypic_data {
   tag "$name"
   publishDir "${params.outdir}/filter_genotypic_data", mode: 'copy'
   input:
-  tuple val(name), val(chr), file(bed), file(bim), file(fam)
+  tuple val(name), val(chr), path(bed), path(bim), path(fam)
 
   output:
   tuple path("${name}.misHWEfiltered.bed"), path("${name}.misHWEfiltered.bim"), path("${name}.misHWEfiltered.fam"), emit: filtered_geno_data
@@ -227,7 +227,7 @@ process check_sample_sex {
   publishDir "${params.outdir}/sex_check", mode: 'copy'
 
   input:
-  tuple file('merged.bed'), file('merged.bim'), file('merged.fam')
+  tuple path('merged.bed'), path('merged.bim'), path('merged.fam')
 
   output:
   path("sex_check.log"), emit: sex_check_log
@@ -250,8 +250,8 @@ process ld_prune {
   publishDir "${params.outdir}/merged_pruned_plink", mode: 'copy'
 
   input:
-  tuple file('merged.bed'), file('merged.bim'), file('merged.fam')
-  file(long_range_ld_regions)
+  tuple path('merged.bed'), path('merged.bim'), path('merged.fam')
+  path(long_range_ld_regions)
 
   output:
   tuple val('merged_pruned'), path('merged_pruned.bed'), path('merged_pruned.bim'), path('merged_pruned.fam'), emit: pruned_variants //(ch_pruned_variants_for_grm, ch_pruned_variants_for_relatedness, ch_unrelated_for_pca, ch_unrelated_for_ancestry_inference)
@@ -284,7 +284,7 @@ process calculate_relatedness {
     label "tiny_memory"
 
     input:
-    tuple val(name), file(bim), file(bed), file(fam)
+    tuple val(name), path(bim), path(bed), path(fam)
 
     output:
     path("relatedness.king.cutoff.in.id"), emit: related_filter_keep_files
@@ -305,8 +305,8 @@ process infer_ancestry {
     publishDir "${params.outdir}/king_ancestry_inference/", mode: 'copy'
 
     input:
-    tuple file('keep.tsv'), val(name), file('in.bed'), file('in.bim'), file('in.fam')
-    tuple val(ref_name), file('ref.bed.xz'), file('ref.bim.xz'), file('ref.fam.xz')
+    tuple path('keep.tsv'), val(name), path('in.bed'), path('in.bim'), path('in.fam')
+    tuple val(ref_name), path('ref.bed.xz'), path('ref.bim.xz'), path('ref.fam.xz')
 
     output:
     path("*.keep.tsv"), emit: split_ancestry_keep_files_out
@@ -341,7 +341,7 @@ process filter_pca {
   publishDir "${params.outdir}/${ancestry_group}/pca/", mode: 'copy'
 
   input:
-  tuple val(ancestry_group), file('in.tsv'), val(name), file('in.bed'), file('in.bim'), file('in.fam')
+  tuple val(ancestry_group), path('in.tsv'), val(name), path('in.bed'), path('in.bim'), path('in.fam')
 
   output:
   tuple val(ancestry_group), path('pca_results_final.eigenvec'), path('pca_results_final.eigenval'), emit: pca_results
@@ -392,8 +392,8 @@ process filter_pca {
 
 process transform_phenofile {
   input:
-  file(original_pheno)
-  file(transform_tsv)
+  path(original_pheno)
+  path(transform_tsv)
 
   output:
   path("*.phe"), emit: transform_pheno_out
@@ -409,11 +409,11 @@ process create_ancestry_x_transform_pheno {
   tag "${ancestry_group} ${gwas_tag}"
   
   input:
-  tuple val(gwas_tag), file('in.phenofile.phe')
-  tuple val(ancestry_group), file('keep.tsv')
+  tuple val(gwas_tag), path('in.phenofile.phe')
+  tuple val(ancestry_group), path('keep.tsv')
 
   output:
-  tuple val(ancestry_group), val(gwas_tag), file('out.phenofile.phe'), emit: crossed_pheno_out
+  tuple val(ancestry_group), val(gwas_tag), path('out.phenofile.phe'), emit: crossed_pheno_out
 
   script:
   """
@@ -430,7 +430,7 @@ process add_pcs_to_pheno {
   tag "${ancestry_group} ${gwas_tag}"
 
   input:
-  tuple val(ancestry_group), file('pca_results.eigenvec'), file('pca_results.eigenval'), val(gwas_tag), file('in.phenofile.phe')
+  tuple val(ancestry_group), path('pca_results.eigenvec'), path('pca_results.eigenval'), val(gwas_tag), path('in.phenofile.phe')
 
   output:
   tuple val(ancestry_group), val(gwas_tag), path('out.phenofile.phe'), emit: final_phenos
@@ -451,11 +451,11 @@ process align_pheno_with_test_variant_plink {
   publishDir "${params.outdir}/${ancestry_group}/${gwas_tag}/", mode: 'copy'
 
   input:
-  tuple val(ancestry_group), val(gwas_tag), file('phenofile.phe')
-  tuple file('in.bed'), file('in.bim'), file('in.fam')
+  tuple val(ancestry_group), val(gwas_tag), path('phenofile.phe')
+  tuple path('in.bed'), path('in.bim'), path('in.fam')
 
   output:
-  tuple val(ancestry_group), val(gwas_tag), file('trait_type'), file('phenofile.phe'), file('aligned_test_variants.bed'), file('aligned_test_variants.bim'), file('aligned_test_variants.fam'), emit: align_pheno_with_test_variant_plink_out
+  tuple val(ancestry_group), val(gwas_tag), path('trait_type'), path('phenofile.phe'), path('aligned_test_variants.bed'), path('aligned_test_variants.bim'), path('aligned_test_variants.fam'), emit: align_pheno_with_test_variant_plink_out
 
   script:
   """
@@ -476,10 +476,10 @@ process filter_binary_missingness {
     publishDir "${params.outdir}/${ancestry_group}/${gwas_tag}/", mode: 'copy'
 
     input:
-    tuple val(ancestry_group), val(gwas_tag), val(trait_type), file('phenofile.phe'), file('in.bed'), file('in.bim'), file('in.fam')
+    tuple val(ancestry_group), val(gwas_tag), val(trait_type), path('phenofile.phe'), path('in.bed'), path('in.bim'), path('in.fam')
 
     output:
-    tuple val(ancestry_group), val(gwas_tag), val(trait_type), file('phenofile.phe'), file('*_filtered.bed'), file('*_filtered.bim'), file('*_filtered.fam'), emit: aligned_test_vars_binary_hwe_filtered
+    tuple val(ancestry_group), val(gwas_tag), val(trait_type), path('phenofile.phe'), path('*_filtered.bed'), path('*_filtered.bim'), path('*_filtered.fam'), emit: aligned_test_vars_binary_hwe_filtered
 
     script:
     plink_memory = extractInt(task.memory.toString()) * 1000
@@ -510,7 +510,7 @@ process convert2bgen   {
   label "convert2bgen"
 
   input:
-  tuple val(ancestry_group), val(gwas_tag), val(trait_type), file('phenofile.phe'), file('in.bed'), file('in.bim'), file('in.fam')
+  tuple val(ancestry_group), val(gwas_tag), val(trait_type), path('phenofile.phe'), path('in.bed'), path('in.bim'), path('in.fam')
 
   output:
   tuple val(ancestry_group), val(gwas_tag), val(trait_type), path('phenofile.phe'), path('aligned_filtered.bgen'), path('aligned_filtered.sample'), emit: merged_bgen
@@ -527,7 +527,7 @@ process regenie_step1_fit_model {
   publishDir "${params.outdir}/${ancestry_group}/${gwas_tag}/regenie/", mode: 'copy', pattern: "${ancestry_group}-${gwas_tag}-regenie_step1*"
 
   input:
-  tuple val(ancestry_group), val(gwas_tag), val(trait_type), file('phenofile.phe'), file('in.bgen'), file('in.sample')
+  tuple val(ancestry_group), val(gwas_tag), val(trait_type), path('phenofile.phe'), path('in.bgen'), path('in.sample')
 
   output:
   tuple val(ancestry_group), val(gwas_tag), val(trait_type), path('phenofile.phe'), path('in.bgen'), path('in.sample'), path("*.loco"), path("*_pred.list"), path("covariates.txt"), path("pheno.txt"), emit: inputs_for_regenie_step2
@@ -561,10 +561,10 @@ process regenie_step2_association_testing {
   publishDir "${params.outdir}/${ancestry_group}/${gwas_tag}/regenie", mode: 'copy'
 
   input:
-  tuple val(ancestry_group), val(gwas_tag), val(trait_type), path('phenofile.phe'), path('in.bgen'), path('in.sample'), file(loco), file(pred), file ("covariates.txt"), file ("pheno.txt")
+  tuple val(ancestry_group), val(gwas_tag), val(trait_type), path('phenofile.phe'), path('in.bgen'), path('in.sample'), path(loco), path(pred), file ("covariates.txt"), file ("pheno.txt")
 
   output:
-  tuple val(ancestry_group), val(gwas_tag), file("${ancestry_group}-${gwas_tag}-regenie_firth*.regenie"), emit: regenie_out
+  tuple val(ancestry_group), val(gwas_tag), path("${ancestry_group}-${gwas_tag}-regenie_firth*.regenie"), emit: regenie_out
   path("${ancestry_group}-${gwas_tag}-regenie_firth*"), emit: regenie_step2_assoc
 
   script:
@@ -593,7 +593,7 @@ process munge_regenie {
   publishDir "${params.outdir}/${ancestry_group}/${gwas_tag}/regenie", mode: 'copy'
 
   input:
-  tuple val(ancestry_group), val(gwas_tag), file(regenie_table)
+  tuple val(ancestry_group), val(gwas_tag), path(regenie_table)
 
   output:
   tuple val(ancestry_group), val(gwas_tag), val('regenie'), path("${regenie_table.baseName}.vcf"), emit: summ_stats
@@ -655,7 +655,7 @@ workflow lifebitai_gwas_vcf_regenie{
 
 
     ch_input_vcf = ch_user_input_vcf.splitCsv(skip:1)
-                .map { chr, vcf, index -> [file(vcf).simpleName, chr, file(vcf), file(index)] }
+                .map { chr, vcf, index -> [path(vcf).simpleName, chr, path(vcf), path(index)] }
                 .take( 3 )
 
     vcf2plink(ch_input_vcf,
@@ -707,7 +707,7 @@ workflow lifebitai_gwas_vcf_regenie{
     }
 
     if (params.pheno_transform) {
-      transform_phenofile(ch_pheno,
+      transform_phenopath(ch_pheno,
                           ch_input_pheno_transform)
       ch_transformed_phenos = transform_phenofile.out.transform_pheno_out
         .flatMap()
@@ -785,10 +785,10 @@ workflow{
   ---------------------------------------------------*/
   if (params.input_folder_location) {
     ch_user_input_vcf = Channel.fromPath("${params.input_folder_location}/**${params.file_pattern}*.{${params.file_suffix},${params.index_suffix}}")
-        .map { it -> [ get_chromosome(file(it).simpleName.minus(".${params.index_suffix}").minus(".${params.file_suffix}")), "s3:/"+it] }
+        .map { it -> [ get_chromosome(path(it).simpleName.minus(".${params.index_suffix}").minus(".${params.file_suffix}")), "s3:/"+it] }
         .groupTuple(by:0)
         .map { chr, files_pair -> [ chr, files_pair[0], files_pair[1] ] }
-        .map { chr, vcf, index -> [ file(vcf).simpleName, chr, file(vcf), file(index) ] }
+        .map { chr, vcf, index -> [ path(vcf).simpleName, chr, path(vcf), path(index) ] }
         .take( params.number_of_files_to_process )
   }
 
