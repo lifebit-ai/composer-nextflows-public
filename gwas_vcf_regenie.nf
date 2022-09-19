@@ -396,7 +396,7 @@ process transform_phenofile {
   file(transform_tsv)
 
   output:
-  file("*.phe"), emit: transform_pheno_out
+  path("*.phe"), emit: transform_pheno_out
 
   script:
   """
