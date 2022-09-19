@@ -707,7 +707,7 @@ workflow lifebitai_gwas_vcf_regenie{
     }
 
     if (params.pheno_transform) {
-      transform_phenopath(ch_pheno,
+      transform_phenofile(ch_pheno,
                           ch_input_pheno_transform)
       ch_transformed_phenos = transform_phenofile.out.transform_pheno_out
         .flatMap()
