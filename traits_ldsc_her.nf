@@ -163,7 +163,7 @@ process heritability_ldsc {
     """
 }
 
-workflow lifebitai_traits_ldsc_gc{
+workflow lifebitai_traits_ldsc_her{
   take:
     ch_gwas_statistics
     ch_hapmap3_snplist
@@ -200,7 +200,7 @@ workflow {
                               .fromPath(params.ld_scores_tar_bz2)
                               .ifEmpty { exit 1, "Cannot find LD scores file : ${params.ld_scores_tar_bz2}" }
       
-      lifebitai_traits_gcta_greml(ch_gwas_statistics,
+      lifebitai_traits_ldsc_her(ch_gwas_statistics,
                                   ch_hapmap3_snplist,
                                   ch_ld_scores_tar_bz2)
 
