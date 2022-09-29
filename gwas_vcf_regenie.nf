@@ -596,7 +596,7 @@ process munge_regenie {
   tuple val(ancestry_group), val(gwas_tag), path(regenie_table)
 
   output:
-  tuple val(ancestry_group), val(gwas_tag), val('regenie'), path("${regenie_table.baseName}.vcf"), emit: summ_stats
+  tuple path("${regenie_table.baseName}.vcf"), emit: summ_stats
   path("${regenie_table.baseName}.munge.log")
 
   script:
