@@ -207,7 +207,7 @@ process magma_gene_analysis {
     tuple file(bed), file(bim), file(fam)
     file(magma_anot)
     file(snp_p_file)
-    file(ref_panel_synonyms)
+    //file(ref_panel_synonyms)
 
     output:
     path('magma_out.genes.raw'), emit: genes_raw
@@ -361,43 +361,93 @@ process multiqc {
 }
 
 workflow lifebitai_geneset_enrichment_vcf {
+    take:
+        ch_multiqc_config
+        vcf_file
+        ch_gene_loc_file
+        ch_set_anot
+        ch_summary_stats
+
+    main:
+        // Show help message
+        if (params.help) {
+            helpMessage()
+            exit 0
+        }
+
+        if (params.genomes && params.genome && !params.genomes.containsKey(params.genome)) {
+            exit 1, "The provided genome '${params.genome}' is not available in the iGenomes file. Currently the available genomes are ${params.genomes.keySet().join(", ")}"
+        }
+
+        ch_snp_subset = ''
+
+        ch_multiqc_custom_config = params.multiqc_config ? Channel.fromPath(params.multiqc_config, checkIfExists: true) : Channel.empty()
+
+        extract_snp_p_from_sumstats(ch_summary_stats)
+
+        ch_snp_p = extract_snp_p_from_sumstats.out.snp_p_txt
+
+        vcfs = vcf_file
+            .splitCsv(header: true)
+            .map{ row -> [file(row.vcf)] }
+
+        preprocessing_vcf(vcfs.collect(),
+                    vcf_file)
+
+        plink(preprocessing_vcf.out.vcf_plink,
+                preprocessing_vcf.out.data)
+                
+        ch_plink = plink.out.plink_undirect
+
+
+        magma_annotation(ch_plink,
+                            ch_gene_loc_file,
+                            ch_snp_subset)
+        
+
+        magma_gene_analysis(ch_plink,
+                            magma_annotation.out.magma_anot,
+                            ch_snp_p)
+        //                    ch_ref_panel_synonyms)
+        
+        magma_geneset_analysis(magma_gene_analysis.out.genes_raw,
+                                ch_set_anot)
+        
+        // magma_gene_property_analysis(magma_gene_analysis.out.genes_raw,
+        //                                 ch_cov)
+        
+        results_plots(magma_geneset_analysis.out.geneset)
+
+        get_genenames(results_plots.out.res_sorted,
+                        results_plots.out.res_top,
+                        magma_annotation.out.magma_anot,
+                        ch_set_anot,
+                        ch_gene_loc_file)
+        
+        multiqc(get_genenames.out.report_table,
+                results_plots.out.report_plot)
+        
+        multiqc_report = multiqc.out.multiqc_report
+    
+    emit:
+        multiqc_report
 
 }
 
 workflow{
-    // Show help message
-    if (params.help) {
-        helpMessage()
-        exit 0
-    }
 
     /*
     * SET UP CONFIGURATION VARIABLES
     */
 
     // Check if genome exists in the config file
-    if (params.genomes && params.genome && !params.genomes.containsKey(params.genome)) {
-        exit 1, "The provided genome '${params.genome}' is not available in the iGenomes file. Currently the available genomes are ${params.genomes.keySet().join(", ")}"
-    }
+
+
 
     // Stage config files
-    ch_multiqc_config = file("$baseDir/assets/multiqc_config.yaml", checkIfExists: true)
-    ch_multiqc_custom_config = params.multiqc_config ? Channel.fromPath(params.multiqc_config, checkIfExists: true) : Channel.empty()
-    ch_output_docs = file("$baseDir/docs/output.md", checkIfExists: true)
-
-    if (params.vcf_file) {
-        vcf_file = Channel.fromPath(params.vcf_file)
+    ch_multiqc_config = Channel.fromPath("$baseDir/assets/multiqc_config.yaml", checkIfExists: true)
+    vcf_file = Channel.fromPath(params.vcf_file)
             .ifEmpty { exit 1, "VCF file containing  not found: ${params.vcf_file}" }
-        vcfs = vcf_file
-            .splitCsv(header: true)
-            .map{ row -> [file(row.vcf)] }
-    }
-    if (!params.vcf_file) {
-        vcfs = false
-        vcf_file = false
-    }
-
-
 
     //--------------------------------------------------------------------------
 
@@ -414,23 +464,19 @@ workflow{
     if (params.set_anot_file) {
         ch_set_anot = Channel.fromPath(params.set_anot_file)
     }
+    // if (params.cov_file) {
+    //     ch_cov = Channel.fromPath(params.cov_file)
+    // }
 
-    if (params.cov_file) {
-        ch_cov = Channel.fromPath(params.cov_file)
-    }
-
-
-    //--------------------------------------------------------------------------
 
     //--------------------------------------------------------------------------
 
+    //--------------------------------------------------------------------------
 
     if (workflow.revision) summary['Pipeline Release'] = workflow.revision
     summary['Run Name']         =  workflow.runName
     // TODO nf-core: Report custom parameters here
     summary['Gene-Location file'] = params.gene_loc_file
-    summary['Annotation file']    = params.fasta
-    summary['Max Resources']    = "$params.max_memory memory, $params.max_cpus cpus, $params.max_time time per job"
     if (workflow.containerEngine) summary['Container'] = "$workflow.containerEngine - $workflow.container"
     summary['Output dir']       = params.outdir
     summary['Launch dir']       = workflow.launchDir
@@ -456,62 +502,15 @@ workflow{
             </dl>
         """.stripIndent() }
 
-
-    // this is only incase of summary stats file provided
-    if(params.summary_stats){
+    if(params.vcf_file && params.summary_stats){
         ch_summary_stats = Channel.fromPath(params.summary_stats)
-        extract_snp_p_from_sumstats(ch_summary_stats)
-        ch_snp_p = extract_snp_p_from_sumstats.out.snp_p_txt
+        lifebitai_geneset_enrichment_vcf(
+            ch_multiqc_config,
+            ch_output_docs,
+            vcf_file,
+            ch_gene_loc_file,
+            ch_set_anot,
+            ch_summary_stats
+        )
     }
-
-    if(!params.summary_stats){
-        ch_snp_p = ''
-    }
-
-    // if a subset file is provided
-    if (params.snp_subset) {
-        Channel.fromPath(params.snp_subset)
-            .ifEmpty { exit 1, "A .bim file not found: ${params.snp_subset}" }
-            .set { ch_snp_subset }
-    }
-
-    if (!params.snp_subset) {
-        ch_snp_subset = ''
-    }
-
-
-    if(params.vcf_file){
-        preprocessing_vcf(vcfs.collect(),
-                            vcf_file)
-        plink(preprocessing_vcf.out.vcf_plink,
-                preprocessing_vcf.out.data)
-        ch_plink = plink.out.plink_undirect
-    }
-
-    magma_annotation(ch_plink,
-                        ch_gene_loc_file,
-                        ch_snp_subset)
-    
-
-    magma_gene_analysis(ch_plink,
-                        magma_annotation.out.magma_anot,
-                        ch_snp_p,
-                        ch_ref_panel_synonyms)
-    
-    magma_geneset_analysis(magma_gene_analysis.out.genes_raw,
-                            ch_set_anot)
-    
-    // magma_gene_property_analysis(magma_gene_analysis.out.genes_raw,
-    //                                 ch_cov)
-    
-    results_plots(magma_geneset_analysis.out.geneset)
-
-    get_genenames(results_plots.out.res_sorted,
-                    results_plots.out.res_top,
-                    magma_annotation.out.magma_anot,
-                    ch_set_anot,
-                    ch_gene_loc_file)
-    
-    multiqc(get_genenames.out.report_table,
-            results_plots.out.report_plot)
 }
