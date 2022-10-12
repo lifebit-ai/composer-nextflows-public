@@ -207,7 +207,7 @@ process magma_gene_analysis {
     tuple file(bed), file(bim), file(fam)
     file(magma_anot)
     file(snp_p_file)
-    //file(ref_panel_synonyms)
+    file(ref_panel_synonyms)
 
     output:
     path('magma_out.genes.raw'), emit: genes_raw
@@ -362,8 +362,6 @@ process multiqc {
 
 workflow lifebitai_geneset_enrichment_vcf {
     take:
-        ch_multiqc_config
-        vcf_file
         ch_gene_loc_file
         ch_set_anot
         ch_summary_stats
@@ -374,30 +372,39 @@ workflow lifebitai_geneset_enrichment_vcf {
             helpMessage()
             exit 0
         }
+        
+        ch_ref_panel_bed = Channel.fromPath(params.ref_panel_bed)
+                            .ifEmpty { exit 1, "File not found: ${params.ref_panel_bed}" }
 
-        if (params.genomes && params.genome && !params.genomes.containsKey(params.genome)) {
-            exit 1, "The provided genome '${params.genome}' is not available in the iGenomes file. Currently the available genomes are ${params.genomes.keySet().join(", ")}"
-        }
+        ch_ref_panel_bim = Channel.fromPath(params.ref_panel_bim)
+                            .ifEmpty { exit 1, "File not found: ${params.ref_panel_bim}" }
 
-        ch_snp_subset = ''
+        ch_ref_panel_fam = Channel.fromPath(params.ref_panel_fam)
+                            .ifEmpty { exit 1, "File not found: ${params.ref_panel_fam}" }
 
-        ch_multiqc_custom_config = params.multiqc_config ? Channel.fromPath(params.multiqc_config, checkIfExists: true) : Channel.empty()
+        ch_ref_panel_synonyms = Channel.fromPath(params.ref_panel_synonyms)
+                                .ifEmpty { exit 1, "File not found: ${params.ref_panel_synonyms}" }
 
         extract_snp_p_from_sumstats(ch_summary_stats)
 
         ch_snp_p = extract_snp_p_from_sumstats.out.snp_p_txt
+     
+        preprocess_ref_panel(ch_ref_panel_bed,
+                                ch_ref_panel_bim,
+                                ch_ref_panel_fam)
 
-        vcfs = vcf_file
-            .splitCsv(header: true)
-            .map{ row -> [file(row.vcf)] }
+        ch_plink = preprocess_ref_panel.out.plink_ref_panel
 
-        preprocessing_vcf(vcfs.collect(),
-                    vcf_file)
+        //    if a subset file is provided
+        if (params.snp_subset) {
+            Channel.fromPath(params.snp_subset)
+                .ifEmpty { exit 1, "A .bim file not found: ${params.snp_subset}" }
+                .set { ch_snp_subset }
+        }
 
-        plink(preprocessing_vcf.out.vcf_plink,
-                preprocessing_vcf.out.data)
-                
-        ch_plink = plink.out.plink_undirect
+        if (!params.snp_subset) {
+            ch_snp_subset = ''
+        }
 
 
         magma_annotation(ch_plink,
@@ -407,14 +414,11 @@ workflow lifebitai_geneset_enrichment_vcf {
 
         magma_gene_analysis(ch_plink,
                             magma_annotation.out.magma_anot,
-                            ch_snp_p)
-        //                    ch_ref_panel_synonyms)
+                            ch_snp_p,
+                            ch_ref_panel_synonyms)
         
         magma_geneset_analysis(magma_gene_analysis.out.genes_raw,
                                 ch_set_anot)
-        
-        // magma_gene_property_analysis(magma_gene_analysis.out.genes_raw,
-        //                                 ch_cov)
         
         results_plots(magma_geneset_analysis.out.geneset)
 
@@ -445,9 +449,6 @@ workflow{
 
 
     // Stage config files
-    ch_multiqc_config = Channel.fromPath("$baseDir/assets/multiqc_config.yaml", checkIfExists: true)
-    vcf_file = Channel.fromPath(params.vcf_file)
-            .ifEmpty { exit 1, "VCF file containing  not found: ${params.vcf_file}" }
 
     //--------------------------------------------------------------------------
 
@@ -469,6 +470,18 @@ workflow{
     // }
 
 
+        ch_ref_panel_bed = Channel.fromPath(params.ref_panel_bed)
+                            .ifEmpty { exit 1, "File not found: ${params.ref_panel_bed}" }
+
+        ch_ref_panel_bim = Channel.fromPath(params.ref_panel_bim)
+                            .ifEmpty { exit 1, "File not found: ${params.ref_panel_bim}" }
+
+        ch_ref_panel_fam = Channel.fromPath(params.ref_panel_fam)
+                            .ifEmpty { exit 1, "File not found: ${params.ref_panel_fam}" }
+
+        ch_ref_panel_synonyms = Channel.fromPath(params.ref_panel_synonyms)
+                                .ifEmpty { exit 1, "File not found: ${params.ref_panel_synonyms}" }
+
     //--------------------------------------------------------------------------
 
     //--------------------------------------------------------------------------
@@ -477,6 +490,13 @@ workflow{
     summary['Run Name']         =  workflow.runName
     // TODO nf-core: Report custom parameters here
     summary['Gene-Location file'] = params.gene_loc_file
+    summary['set anot file'] = params.set_anot_file
+    summary['Summary Stats'] = params.summary_stats
+    summary['ref_panel_bed'] = params.ref_panel_bed
+    summary['ref_panel_bim'] = params.ref_panel_bim
+    summary['ref_panel_fam'] = params.ref_panel_fam
+    summary['ref_panel_synonyms'] = params.ref_panel_synonyms
+    summary['snp_subset'] = params.snp_subset
     if (workflow.containerEngine) summary['Container'] = "$workflow.containerEngine - $workflow.container"
     summary['Output dir']       = params.outdir
     summary['Launch dir']       = workflow.launchDir
@@ -502,12 +522,9 @@ workflow{
             </dl>
         """.stripIndent() }
 
-    if(params.vcf_file && params.summary_stats){
+    if(params.summary_stats){
         ch_summary_stats = Channel.fromPath(params.summary_stats)
         lifebitai_geneset_enrichment_vcf(
-            ch_multiqc_config,
-            ch_output_docs,
-            vcf_file,
             ch_gene_loc_file,
             ch_set_anot,
             ch_summary_stats
