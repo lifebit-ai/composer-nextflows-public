@@ -360,7 +360,7 @@ process multiqc {
     """
 }
 
-workflow lifebitai_geneset_enrichment_vcf {
+workflow lifebitai_geneset_enrichment {
     take:
         ch_gene_loc_file
         ch_set_anot
