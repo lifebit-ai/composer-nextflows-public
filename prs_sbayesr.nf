@@ -164,6 +164,35 @@ process calculate_prs_percentiles {
     """
 }
 
+process merge_plink {
+
+    label "plink"
+    publishDir "${params.outdir}/merged_plink", mode: "copy"
+
+    input:
+    tuple val(name), path("*")
+
+    output:
+    path("merged.*"), emit: merged_plink //killed: merged_plink_ldpred2_ch, merged_plink_ldpred_gibbs_ch, merged_plink_ldpred_score_ch, merged_plink_percentile )
+
+    script:
+    """ 
+    ls *.bed > bed.txt
+    ls *.bim > bim.txt
+    ls *.fam > fam.txt
+
+    FIRSTFILE=\$(head -1 bed.txt > first_file.txt && while IFS= read -r line; do echo \${line%%.*}; done < first_file.txt)
+
+    sed -i '1d' bed.txt
+    sed -i '1d' bim.txt
+    sed -i '1d' fam.txt
+
+    paste bed.txt bim.txt fam.txt > merge.list
+
+    plink --keep-allele-order --bfile \$FIRSTFILE --merge-list merge.list --allow-no-sex --make-bed --out merged
+    """
+}
+
 process filter_by_percentiles_v1 {
     label "plink"
     publishDir "${params.outdir}/filtered_${params.lower_prs_percentile}_${params.upper_prs_percentile}_percentile", mode: "copy"
@@ -184,6 +213,7 @@ process filter_by_percentiles_v1 {
     --out filtered_by_${params.lower_prs_percentile}_${params.upper_prs_percentile}_percentile
     """
 }
+
 
 process filter_by_percentiles_v2 {
     label "plink"
@@ -213,47 +243,67 @@ process filter_by_percentiles_v2 {
 }
 
 workflow lifebitai_prs_bayesr{
-        input:
-            ch_gwas_vcf
-            ch_ref
+    input:
+        ch_gwas_vcf
+        ch_ref
 
-        main:
-            transform_gwas_vcf_sbayesr(ch_gwas_vcf)
+    main:
+        transform_gwas_vcf_sbayesr(ch_gwas_vcf)
 
-            if ( params.chrom_range) {
-                ch_chromosomes = Channel
-                    .from( params.chrom_range )
-                    .ifEmpty { exit 1, "Chromosome range not supplied: ${params.chrom_range}" }
-            }
+        if ( params.chrom_range) {
+            ch_chromosomes = Channel
+                .from( params.chrom_range )
+                .ifEmpty { exit 1, "Chromosome range not supplied: ${params.chrom_range}" }
+        }
 
-            if ( params.chr_ld_matrix_dir ) {
-                ch_chr_ld_matrix = Channel
-                    .fromPath("${params.chr_ld_matrix_dir}/*chr${params.chrom_range}*.{bin,info}" )
-                    .map { it -> [ get_chromosome(file(it).simpleName.minus(".ldm.sparse.bin").minus(".ldm.sparse.info")), "s3:/"+it] }
-                    .groupTuple(by:0,sort: true)
-                    .map { chr, files_pair -> [ chr, files_pair[0], files_pair[1] ] }
-                    .map { chr, bin, info -> [ chr, file(bin), file(info) ] }
-            }
+        if ( params.chr_ld_matrix_dir ) {
+            ch_chr_ld_matrix = Channel
+                .fromPath("${params.chr_ld_matrix_dir}/*chr${params.chrom_range}*.{bin,info}" )
+                .map { it -> [ get_chromosome(file(it).simpleName.minus(".ldm.sparse.bin").minus(".ldm.sparse.info")), "s3:/"+it] }
+                .groupTuple(by:0,sort: true)
+                .map { chr, files_pair -> [ chr, files_pair[0], files_pair[1] ] }
+                .map { chr, bin, info -> [ chr, file(bin), file(info) ] }
+        }
 
-            split_sumstats_sbayesr(transform_gwas_vcf_sbayesr.out.sumstats,
-                                    ch_split_sumstats_sbayesr_script,
-                                    ch_chromosomes)
-            
-            ch_sbayesr_input = split_sumstats_sbayesr.out.split_sumstats_output
-                                .join(ch_chr_ld_matrix,by: 0) // killed: ch_sbayesr_test
-            
-            run_sbayesr(ch_sbayesr_input)
-
-            concat_sbayesr_weights(run_sbayesr.out.sbayesr_snp_weights.collect())
-
-
-            calculate_sample_prs_sbayesr(ch_ref,
-                                            concat_sbayesr_weights.out.gw_sbayesr_weights)
-            
-            ch_scores_to_percentiles = calculate_sample_prs_sbayesr.out.scores_to_percentiles
+        split_sumstats_sbayesr(transform_gwas_vcf_sbayesr.out.sumstats,
+                                ch_split_sumstats_sbayesr_script,
+                                ch_chromosomes)
         
-        emit:
-            ch_scores_to_percentiles
+        ch_sbayesr_input = split_sumstats_sbayesr.out.split_sumstats_output
+                            .join(ch_chr_ld_matrix,by: 0) // killed: ch_sbayesr_test
+        
+        run_sbayesr(ch_sbayesr_input)
+
+        concat_sbayesr_weights(run_sbayesr.out.sbayesr_snp_weights.collect())
+
+
+        calculate_sample_prs_sbayesr(ch_ref,
+                                        concat_sbayesr_weights.out.gw_sbayesr_weights)
+        
+        ch_scores_to_percentiles = calculate_sample_prs_sbayesr.out.scores_to_percentiles
+
+        if (params.calc_prs_percentiles) {
+            calculate_prs_percentiles(ch_scores_to_percentiles, 
+                                    ch_calculate_prs_percentiles_script)
+        }
+
+        if (params.filter_by_percentiles) {
+            if (params.merge_per_chrom) {
+                filter_by_percentiles_v1(merge_plink.out.merged_plink,
+                                            calculate_prs_percentiles.out.samples_filtered_by_percentile)
+            
+                ch_filtered_percentile_cohort = filter_by_percentiles_v1.out.filtered_percentile_cohort
+            
+            } else {
+                filter_by_percentiles_v2(ch_ref,
+                                        calculate_prs_percentiles.out.samples_filtered_by_percentile)
+                
+                ch_filtered_percentile_cohort = filter_by_percentiles_v2.out.filtered_percentile_cohort
+            }
+        }
+    
+    emit:
+        ch_scores_to_percentiles
 }
 
 workflow{
@@ -286,31 +336,7 @@ workflow{
     if ( params.sbayesr) {
        lifebitai_prs_bayesr(
             ch_gwas_vcf,
-            ch_split_sumstats_sbayesr_script,
-            ch_chromosomes,
-            ch_chr_ld_matrix,
-            ch_sbayesr_input,
             ch_ref
        )
-    }
-
-    if (params.calc_prs_percentiles) {
-       calculate_prs_percentiles(ch_scores_to_percentiles, 
-                                   ch_calculate_prs_percentiles_script)
-    }
-
-    if (params.filter_by_percentiles) {
-        if (params.merge_per_chrom) {
-            filter_by_percentiles_v1(merge_plink.out.merged_plink,
-                                        calculate_prs_percentiles.out.samples_filtered_by_percentile)
-        
-            ch_filtered_percentile_cohort = filter_by_percentiles_v1.out.filtered_percentile_cohort
-        
-        } else {
-            filter_by_percentiles_v2(ch_ref,
-                                    calculate_prs_percentiles.out.samples_filtered_by_percentile)
-            
-            ch_filtered_percentile_cohort = filter_by_percentiles_v2.out.filtered_percentile_cohort
-        }
     }
 }
