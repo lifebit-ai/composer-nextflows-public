@@ -77,7 +77,7 @@ process transform_gwas_vcf_prsice {
     publishDir "${params.outdir}/transformed_VCF_input", mode: "copy"
 
     input:
-    file gwas_vcf
+    path gwas_vcf
 
     output:
     path("base.data"), emit: transformed_base
@@ -429,7 +429,6 @@ process calculate_prs_percentiles {
 
     input:
     path(prs_scores)
-    each path(prs_percentile_script)
 
     output:
     path("prs_scores_percentiles.csv"), emit: prs_scores_percentiles
@@ -437,7 +436,7 @@ process calculate_prs_percentiles {
 
     script:
     """
-    python3 $prs_percentile_script --input_prs_scores $prs_scores \
+    calculate_prs_percentiles.py --input_prs_scores $prs_scores \
                                     --output_prs_df prs_scores_percentiles.csv \
                                     --prs_column_name ${params.prs_column_name} \
                                     --lower_prs_percentile ${params.lower_prs_percentile} \
@@ -471,7 +470,7 @@ process filter_by_percentiles_v1 {
 
 
 workflow lifebitai_prs_multi_plink{
-        input:
+        take:
             ch_gwas_vcf
             ch_target_pheno
 
@@ -518,7 +517,6 @@ workflow lifebitai_prs_multi_plink{
             ch_prs_scores_tables = Channel.empty()
 
             projectDir = workflow.projectDir
-            ch_calculate_prs_percentiles_script = Channel.fromPath("${projectDir}/bin/calculate_prs_percentiles.py")
 
             if (params.gt_format == "dosages") {
                 if (params.genotype_data) {
@@ -588,8 +586,7 @@ workflow lifebitai_prs_multi_plink{
             }
 
             if (params.calc_prs_percentiles) {
-            calculate_prs_percentiles(ch_scores_to_percentiles, 
-                                        ch_calculate_prs_percentiles_script)
+            calculate_prs_percentiles(ch_scores_to_percentiles)
             }
 
             if (params.filter_by_percentiles) {

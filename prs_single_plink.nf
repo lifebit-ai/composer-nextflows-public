@@ -575,7 +575,7 @@ workflow lifebitai_prs_single_plink{
                 }
             }
             if (params.megaprs) {
-                if (params.pheno_file) {
+                if (params.target_pheno) {
                     ch_pheno_file = Channel
                         .fromPath(params.target_pheno, checkIfExists: true)
                         .ifEmpty { exit 1, "Phenotype file not found: ${params.target_pheno}" }
@@ -687,7 +687,7 @@ workflow lifebitai_prs_single_plink{
 
             if (params.filter_by_percentiles) {
 
-                filter_by_percentiles_v2(ch_cohort_to_filter,
+                filter_by_percentiles_v2(ch_genotypes,
                                         calculate_prs_percentiles.out.samples_filtered_by_percentile)
                 
                 ch_filtered_percentile_cohort = filter_by_percentiles_v2.out.filtered_percentile_cohort

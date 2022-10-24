@@ -57,7 +57,6 @@ process split_sumstats_sbayesr {
 
     input:
     each path(sumstats)
-    each path(split_sumstats_sbayesr_script)
     val(chrom)
 
     output:
@@ -65,7 +64,7 @@ process split_sumstats_sbayesr {
 
     script:
     """
-    Rscript $split_sumstats_sbayesr_script --input_sumstats=$sumstats \
+    split_sumstats_sbayesr.R --input_sumstats=$sumstats \
                                             --chromosome=$chrom \
                                             --p_max=${params.p_max}
     """
@@ -147,7 +146,6 @@ process calculate_prs_percentiles {
 
     input:
     path(prs_scores)
-    each path(prs_percentile_script)
 
     output:
     path("prs_scores_percentiles.csv"), emit: prs_scores_percentiles
@@ -155,7 +153,7 @@ process calculate_prs_percentiles {
 
     script:
     """
-    python3 $prs_percentile_script --input_prs_scores $prs_scores \
+    calculate_prs_percentiles.py --input_prs_scores $prs_scores \
                                     --output_prs_df prs_scores_percentiles.csv \
                                     --prs_column_name ${params.prs_column_name} \
                                     --lower_prs_percentile ${params.lower_prs_percentile} \
@@ -173,7 +171,7 @@ process merge_plink {
     tuple val(name), path("*")
 
     output:
-    path("merged.*"), emit: merged_plink //killed: merged_plink_ldpred2_ch, merged_plink_ldpred_gibbs_ch, merged_plink_ldpred_score_ch, merged_plink_percentile )
+    path("merged.*"), emit: merged_plink
 
     script:
     """ 
@@ -242,8 +240,8 @@ process filter_by_percentiles_v2 {
     """
 }
 
-workflow lifebitai_prs_bayesr{
-    input:
+workflow lifebitai_prs_sbayesr{
+    take:
         ch_gwas_vcf
         ch_ref
 
@@ -266,7 +264,6 @@ workflow lifebitai_prs_bayesr{
         }
 
         split_sumstats_sbayesr(transform_gwas_vcf_sbayesr.out.sumstats,
-                                ch_split_sumstats_sbayesr_script,
                                 ch_chromosomes)
         
         ch_sbayesr_input = split_sumstats_sbayesr.out.split_sumstats_output
@@ -283,8 +280,7 @@ workflow lifebitai_prs_bayesr{
         ch_scores_to_percentiles = calculate_sample_prs_sbayesr.out.scores_to_percentiles
 
         if (params.calc_prs_percentiles) {
-            calculate_prs_percentiles(ch_scores_to_percentiles, 
-                                    ch_calculate_prs_percentiles_script)
+            calculate_prs_percentiles(ch_scores_to_percentiles)
         }
 
         if (params.filter_by_percentiles) {
@@ -312,9 +308,6 @@ workflow{
     ch_prs_scores_tables = Channel.empty()
 
     projectDir = workflow.projectDir
-    ch_calculate_prs_percentiles_script = Channel.fromPath("${projectDir}/bin/calculate_prs_percentiles.py")
-    ch_process_json_script = Channel.fromPath("${projectDir}/bin/process_json.py")
-    ch_split_sumstats_sbayesr_script = Channel.fromPath("${projectDir}/bin/split_sumstats_sbayesr.R")
 
 
     if (params.gwas_vcf) {
@@ -334,7 +327,7 @@ workflow{
     ------------------------------*/
 
     if ( params.sbayesr) {
-       lifebitai_prs_bayesr(
+       lifebitai_prs_sbayesr(
             ch_gwas_vcf,
             ch_ref
        )
