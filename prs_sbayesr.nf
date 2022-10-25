@@ -269,10 +269,8 @@ workflow lifebitai_prs_sbayesr{
         split_sumstats_sbayesr(transform_gwas_vcf_sbayesr.out.sumstats,
                                 ch_chromosomes)
         
-        ch_sbayesr_input = split_sumstats_sbayesr.out.split_sumstats_output
-                            .join(ch_chr_ld_matrix,by: 0) // killed: ch_sbayesr_test
-        
-        run_sbayesr(ch_sbayesr_input)
+        run_sbayesr(split_sumstats_sbayesr.out.split_sumstats_output
+                            .join(ch_chr_ld_matrix,by: 0))
 
         concat_sbayesr_weights(run_sbayesr.out.sbayesr_snp_weights.collect())
 
