@@ -162,57 +162,6 @@ process calculate_prs_percentiles {
     """
 }
 
-process merge_plink {
-
-    label "plink"
-    publishDir "${params.outdir}/merged_plink", mode: "copy"
-
-    input:
-    tuple val(name), path("*")
-
-    output:
-    path("merged.*"), emit: merged_plink
-
-    script:
-    """ 
-    ls *.bed > bed.txt
-    ls *.bim > bim.txt
-    ls *.fam > fam.txt
-
-    FIRSTFILE=\$(head -1 bed.txt > first_file.txt && while IFS= read -r line; do echo \${line%%.*}; done < first_file.txt)
-
-    sed -i '1d' bed.txt
-    sed -i '1d' bim.txt
-    sed -i '1d' fam.txt
-
-    paste bed.txt bim.txt fam.txt > merge.list
-
-    plink --keep-allele-order --bfile \$FIRSTFILE --merge-list merge.list --allow-no-sex --make-bed --out merged
-    """
-}
-
-process filter_by_percentiles_v1 {
-    label "plink"
-    publishDir "${params.outdir}/filtered_${params.lower_prs_percentile}_${params.upper_prs_percentile}_percentile", mode: "copy"
-
-    input:
-    each path(merged_plink_file)
-    path(samples_filtered_by_percentile)
-
-    output:
-    path("filtered_by_*"), emit: filtered_percentile_cohort
-
-    script:
-    """
-    plink --bfile merged \
-    --keep-allele-order \
-    --keep $samples_filtered_by_percentile \
-    --make-bed \
-    --out filtered_by_${params.lower_prs_percentile}_${params.upper_prs_percentile}_percentile
-    """
-}
-
-
 process filter_by_percentiles_v2 {
     label "plink"
     publishDir "${params.outdir}/filtered_${params.lower_prs_percentile}_${params.upper_prs_percentile}_percentile", mode: "copy"
@@ -245,6 +194,11 @@ workflow lifebitai_prs_sbayesr{
         ch_gwas_vcf
 
     main:
+
+        ch_prs_scores_tables = Channel.empty()
+
+        projectDir = workflow.projectDir
+        
         transform_gwas_vcf_sbayesr(ch_gwas_vcf)
 
         ch_ref = Channel
@@ -285,18 +239,10 @@ workflow lifebitai_prs_sbayesr{
         }
 
         if (params.filter_by_percentiles) {
-            if (params.merge_per_chrom) {
-                filter_by_percentiles_v1(merge_plink.out.merged_plink,
-                                            calculate_prs_percentiles.out.samples_filtered_by_percentile)
+            filter_by_percentiles_v2(ch_ref,
+                                    calculate_prs_percentiles.out.samples_filtered_by_percentile)
             
-                ch_filtered_percentile_cohort = filter_by_percentiles_v1.out.filtered_percentile_cohort
-            
-            } else {
-                filter_by_percentiles_v2(ch_ref,
-                                        calculate_prs_percentiles.out.samples_filtered_by_percentile)
-                
-                ch_filtered_percentile_cohort = filter_by_percentiles_v2.out.filtered_percentile_cohort
-            }
+            ch_filtered_percentile_cohort = filter_by_percentiles_v2.out.filtered_percentile_cohort
         }
     
     emit:
@@ -306,9 +252,7 @@ workflow lifebitai_prs_sbayesr{
 workflow{
     // Check inputs
 
-    ch_prs_scores_tables = Channel.empty()
 
-    projectDir = workflow.projectDir
 
 
     if (params.gwas_vcf) {
@@ -320,10 +264,7 @@ workflow{
     /*----------------------------
     Setting up other parameters
     ------------------------------*/
-
-    if ( params.sbayesr) {
        lifebitai_prs_sbayesr(
             ch_gwas_vcf
        )
-    }
 }
