@@ -610,12 +610,12 @@ workflow lifebitai_prs_single_plink{
             ------------------------------*/
 
             // // Initialise variable to store optional parameters
-            if (params.gwas_vcf && params.ldpred2) {
+            if (params.ldpred2) {
                 transform_gwas_vcf_ldpred2(ch_gwas_vcf)
                 ch_input_sumstats = transform_gwas_vcf_ldpred2.out.sumstats
             }
 
-            if (params.gwas_vcf && params.prscsx) {
+            if (params.prscsx) {
                 transform_gwas_vcf_prscsx(ch_gwas_vcf)
                 ch_input_sumstats = transform_gwas_vcf_prscsx.out.sumstats
             }
