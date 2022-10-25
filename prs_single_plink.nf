@@ -556,10 +556,13 @@ process create_post_analysis_dir {
 workflow lifebitai_prs_single_plink{
         take:
             ch_gwas_vcf
-            ch_genotypes
    
         main:
             ch_prs_scores_tables = Channel.empty()
+
+            ch_genotypes = Channel
+                .fromFilePairs("${params.genotype_data}",size:3, flat : true)
+                .ifEmpty { exit 1, "Genotype data in plink format not found: ${params.genotype_data}" }
             
             if (params.target_pheno) {
                 ch_target_pheno = Channel
@@ -743,10 +746,6 @@ workflow{
     --------------------------------------------------------------------------------------------*/
 
     projectDir = workflow.projectDir
-
-    ch_genotypes = Channel
-                    .fromFilePairs("${params.genotype_data}",size:3, flat : true)
-                    .ifEmpty { exit 1, "Genotype data in plink format not found: ${params.genotype_data}" }
 
     ch_gwas_vcf = Channel
                     .fromPath(params.gwas_vcf, checkIfExists: true)

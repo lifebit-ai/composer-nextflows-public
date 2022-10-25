@@ -243,10 +243,13 @@ process filter_by_percentiles_v2 {
 workflow lifebitai_prs_sbayesr{
     take:
         ch_gwas_vcf
-        ch_ref
 
     main:
         transform_gwas_vcf_sbayesr(ch_gwas_vcf)
+
+        ch_ref = Channel
+            .fromFilePairs("${params.reference_panel}",size:3, flat : true)
+            .ifEmpty { exit 1, "Reference files in plink format not found: ${params.reference_panel}" }
 
         if ( params.chrom_range) {
             ch_chromosomes = Channel
@@ -316,20 +319,13 @@ workflow{
         .ifEmpty { exit 1, "GWAS summary stats VCF not found: ${params.gwas_vcf}" }
     }
 
-    if (params.reference_panel) {
-        ch_ref = Channel
-            .fromFilePairs("${params.reference_panel}",size:3, flat : true)
-            .ifEmpty { exit 1, "Reference files in plink format not found: ${params.reference_panel}" }
-    }
-
     /*----------------------------
     Setting up other parameters
     ------------------------------*/
 
     if ( params.sbayesr) {
        lifebitai_prs_sbayesr(
-            ch_gwas_vcf,
-            ch_ref
+            ch_gwas_vcf
        )
     }
 }
