@@ -70,7 +70,6 @@ process fetch_from_ebi {
 
     input:
     val(study_id)
-    each path(ebi_script)
 
     output:
     tuple val("${study_id}"), path("*${study_id}*.h.tsv.gz"), path("${study_id}_metadata_ebi.tsv"), emit: sumstats
@@ -78,7 +77,7 @@ process fetch_from_ebi {
 
     script:
     """
-    bash $ebi_script $study_id
+    ebi_fetch.sh $study_id
     """
 }
 
@@ -485,7 +484,7 @@ workflow lifebitai_harmonisation_ebi{
                                 .flatten()
                                 .take(params.take_n_studies) 
 
-        fetch_from_ebi(ch_studies, ch_ebi_script)
+        fetch_from_ebi(ch_studies)
 
         munge_ebi(fetch_from_ebi.out.sumstats,
                     ch_field_descriptions,

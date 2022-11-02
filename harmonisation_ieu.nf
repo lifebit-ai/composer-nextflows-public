@@ -479,8 +479,7 @@ workflow lifebitai_harmonisation_ieu{
                                 .flatten()
                                 .take(params.take_n_studies) 
         // Channels for scripts
-        fetch_from_ieu(ch_studies, 
-                        ch_ieu_script)
+        fetch_from_ieu(ch_studies)
         
         munge_ieu(fetch_from_ieu.out.sumstats,
                     ch_field_descriptions,
