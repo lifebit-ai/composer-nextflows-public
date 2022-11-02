@@ -494,7 +494,7 @@ workflow lifebitai_harmonisation_ebi{
                                 .flatten()
                                 .take(params.take_n_studies) 
 
-        fetch_from_ebi(ch_input, ch_ebi_script)
+        fetch_from_ebi(ch_studies, ch_ebi_script)
 
         munge_ebi(fetch_from_ebi.out.sumstats,
                     ch_field_descriptions,
