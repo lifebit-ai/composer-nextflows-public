@@ -474,8 +474,11 @@ workflow lifebitai_harmonisation_ieu{
         ch_snplocs_grch38 =  Channel.value(file(params.snplocs_grch38))
         ch_snplocs_grch37 =  Channel.value(file(params.snplocs_grch37))
 
+        ch_studies =  ch_input.splitCsv()
+                                .flatten()
+                                .take(params.take_n_studies) 
         // Channels for scripts
-        fetch_from_ieu(ch_input, 
+        fetch_from_ieu(ch_studies, 
                         ch_ieu_script)
         
         munge_ieu(fetch_from_ieu.out.sumstats,
