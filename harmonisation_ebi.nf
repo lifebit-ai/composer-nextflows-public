@@ -479,16 +479,7 @@ workflow lifebitai_harmonisation_ebi{
         ch_snplocs_grch37 =  Channel.value(file(params.snplocs_grch37))
 
         // Channels for scripts
-        ch_ebi_script                    = Channel.fromPath("${projectDir}/bin/ebi_fetch.sh")
-        ch_munge_ebi_script              = Channel.fromPath("${projectDir}/bin/munge_ebi.R")
-        ch_conv_script                   = Channel.fromPath("${projectDir}/bin/convert_coeff.py")
-        ch_map_traits_script             = Channel.fromPath("${projectDir}/bin/map_traits.R")
-        ch_qc_plots_script               = Channel.fromPath("${projectDir}/bin/gwas_qc_plots.py")
-        ch_vcf2hail_script               = Channel.fromPath("${projectDir}/bin/vcf2hail.py")
-        ch_add_trait_metadata_script     = Channel.fromPath("${projectDir}/bin/add_trait_metadata.R")
-        ch_field_descriptions            = Channel.fromPath("${projectDir}/assets/field_descriptions.tsv")
-        ch_collapse_vcf_script           = Channel.fromPath("${projectDir}/bin/collapse_vcf.py")
-        ch_munge_ebi_funcs_script        = Channel.fromPath("${projectDir}/bin/munge_funcs.R")
+        ch_field_descriptions              = Channel.fromPath(params.field_descriptions)
 
         ch_studies =  ch_input.splitCsv()
                                 .flatten()

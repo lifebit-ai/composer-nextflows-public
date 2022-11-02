@@ -473,6 +473,7 @@ workflow lifebitai_harmonisation_ieu{
         // Channels for SNPlocs
         ch_snplocs_grch38 =  Channel.value(file(params.snplocs_grch38))
         ch_snplocs_grch37 =  Channel.value(file(params.snplocs_grch37))
+        ch_field_descriptions              = Channel.fromPath(params.field_descriptions)
 
         ch_studies =  ch_input.splitCsv()
                                 .flatten()
@@ -482,9 +483,6 @@ workflow lifebitai_harmonisation_ieu{
                         ch_ieu_script)
         
         munge_ieu(fetch_from_ieu.out.sumstats,
-                    ch_munge_ieu_script,
-                    ch_munge_funcs_script,
-                    ch_harmonise_metadata_funcs_script,
                     ch_field_descriptions,
                     ch_snplocs_grch37,
                     ch_snplocs_grch38)

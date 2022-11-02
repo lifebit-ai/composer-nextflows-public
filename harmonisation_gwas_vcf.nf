@@ -495,6 +495,7 @@ workflow lifebitai_harmonisation_gwas_vcf{
         // Channels for SNPlocs
         ch_snplocs_grch38 =  Channel.value(file(params.snplocs_grch38))
         ch_snplocs_grch37 =  Channel.value(file(params.snplocs_grch37))
+        ch_field_descriptions              = Channel.fromPath(params.field_descriptions)
 
         // Channels for scripts
         if (params.force_munge) {
