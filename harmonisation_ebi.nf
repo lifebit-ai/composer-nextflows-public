@@ -359,6 +359,7 @@ process create_report {
   
   input:
   tuple val(study_id), path("${study_id}/*")
+  path(report_dir)
 
   output:
   path("${study_id}_multiqc_report.html"), emit: report_outputs_all
@@ -366,7 +367,7 @@ process create_report {
 
   script:
   """
-  cp -r bin/* .
+  cp -r ${report_dir}/* .
   cp ${study_id}/* .
   # Skip when no plots were generated due to lack of FRQ column
   if [ -f "${study_id}_no_plots.txt" ]; then
@@ -551,7 +552,10 @@ workflow lifebitai_harmonisation_ebi{
             vcf2hail(ch_filtered_sumstats)
         }
 
-        create_report(make_qc_plots.out.qc_plots)
+        ch_report_dir = Channel.value(file("${projectDir}/bin/report"))
+
+        create_report(make_qc_plots.out.qc_plots,
+                        ch_report_dir)
         
         report_output = create_report.out.report_outputs_all
 
