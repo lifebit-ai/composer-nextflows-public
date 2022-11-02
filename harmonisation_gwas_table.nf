@@ -413,7 +413,7 @@ process create_report {
 
 workflow lifebitai_harmonisation_gwas_table{
     take:
-        ch_sumstats
+        ch_gwas_tables
 
     main:
         /*--------------------------------------------------------
@@ -491,11 +491,12 @@ workflow lifebitai_harmonisation_gwas_table{
         }
 
         if (params.input_type == 'list' ) {
-            ch_sumstats = ch_sumstats
-                .splitCsv()
-                .flatten()
-                .map { vcf -> file(vcf) }
-                .take(params.take_n_studies) //default is -1 i.e. take all files (but param is useful for testing with fewer files)
+                ch_gwas_tables = Channel.fromPath(params.input)
+                                        .ifEmpty { exit 1, "Cannot find input file containing GWAS Table paths: ${params.input}" }
+                                        .splitCsv()
+                                        .flatten()
+                                        .map { table -> file(table) }
+                                        .take(params.take_n_studies)//default is -1 i.e. take all files (but param is useful for testing with fewer files)
         }
         
         // Define channels from repository files
@@ -592,7 +593,7 @@ workflow lifebitai_harmonisation_gwas_table{
 
 workflow {
     // Define Channels from input
-    ch_sumstats = Channel.fromPath(params.input)
+    ch_gwas_tables = Channel.fromPath(params.input)
 
-    lifebitai_harmonisation_gwas_table(ch_sumstats)
+    lifebitai_harmonisation_gwas_table(ch_gwas_tables)
 }
