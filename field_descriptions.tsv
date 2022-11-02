@@ -1,0 +1,62 @@
+key	ID	Number	Type	Description
+META	Population	1	String	Ancestral population of individuals in the association study
+META	TotalCases	1	Integer	Total number of cases in the association study
+META	TotalControls	1	Integer	Total number of controls in the association study
+META	TotalSamples	1	Integer	Total number of Samples in the association study
+META	StudyType	1	String	Type of GWAS study [Continuous or CaseControl]
+META	TotalVariants	1	Integer	Total number of variants in input
+META	HarmonisedVariants	1	Integer	Total number of harmonised variants
+META	SwitchedAlleles	1	Integer	Total number of variants strand switched
+META	VariantsNotHarmonised	1	Integer	Total number of variants that could not be harmonised
+META	VariantsNotRead	1	Integer	Number of variants that could not be read
+META	TraitTags	1	String	info from GWAS catalogues
+META	TraitEfos	1	String	info from GWAS catalogues
+META	StudySample	1	String	Information about study sample, e.g. participants' sex.
+META	PubTitle	1	String	info from GWAS catalogues
+META	PubAuthor	1	String	info from GWAS catalogues
+META	PubDate	1	String	info from GWAS catalogues
+META	PubJournal	1	String	info from GWAS catalogues
+META	Comments	1	String	info from GWAS catalogues
+META	Method	1	String	GWAS analysis method
+META	GeneticModel	1	String	Genetic model used for GWAS association test
+META	Covariates	1	String	Covariates used in association analysis
+META	TraitReported	1	String	Trait name used as input for trait search and mapping
+META	TraitSourceOrigin	1	String	Was vocabulary specified for trait name used as input for trait search and mapping.
+META	TraitSourceConceptId	1	String	OMOP concept ID of trait search-hit before mapping.
+META	TraitSourceConceptName	1	String	OMOP concept name of trait search-hit before mapping.
+META	TraitSourceConceptCode	1	String	Identifier within the vocabulary of trait search-hit before mapping.
+META	TraitSourceVocabularyId	1	String	Vocabulary of trait search-hit before mapping.
+META	TraitSourceDomainId	1	String	OMOP domain ID of trait search-hit before mapping.
+META	TraitSourceConceptClassId	1	String	OMOP class ID of trait search-hit before mapping.
+META	TraitSourceStandardConcept	1	String	Is the trait search-hit a standard OMOP concept before mapping.
+META	TraitConceptId	1	String	OMOP concept ID after mapping to a standard OMOP concept.
+META	TraitConceptName	1	String	OMOP concept name after mapping to a standard OMOP concept.
+META	TraitConceptCode	1	String	Identifier within the vocabulary after mapping to a standard OMOP concept.
+META	TraitVocabularyId	1	String	Vocabulary after mapping to standard concept.
+META	TraitDomainId	1	String	OMOP domain ID of concept after mapping.
+META	TraitConceptClassId	1	String	OMOP class ID of concept after mapping.
+META	TraitStandardConcept	1	String	Is the trait a standard OMOP concept after mapping. (Should always be "Standard")
+META	TraitGroupConceptName	1	String	OMOP concept name of ontology grouping after mapping.
+META	TraitGroupConceptId	1	String	OMOP concept ID of ontology grouping after mapping.
+META	TraitBackgroundReported	1	String	Background trait name used as input for mapping
+META	TraitBackgroundSourceOrigin	1	String	Was vocabulary specified for background trait name used as input for trait search and mapping.
+META	TraitBackgroundConceptId	1	String	OMOP concept ID of background trait search-hit.
+META	TraitBackgroundConceptName	1	String	OMOP concept name of background trait search-hit.
+META	TraitBackgroundConceptCode	1	String	Identifier within the vocabulary of background trait search-hit.
+META	TraitBackgroundVocabularyId	1	String	Vocabulary of background trait search-hit.
+META	TraitBackgroundDomainId	1	String	OMOP domain ID of background trait search-hit.
+META	TraitBackgroundConceptClassId	1	String	OMOP class ID of background trait search-hit.
+META	TraitBackgroundStandardConcept	1	String	Is the background trait search-hit a standard OMOP concept.
+FORMAT	AF	A	Float	Alternative allele frequency in trait subset
+FORMAT	LP	A	Float	-log10 p-value for effect estimate
+FORMAT	ES	A	Float	Effect size estimate relative to the alternative allele
+FORMAT	SE	A	Float	Standard error of effect size estimate
+FORMAT	SS	A	Integer	Variant-specific number of samples/individuals with called genotypes used to test association with specified trait
+FORMAT	NC	A	Integer	Variant-specific number of cases used to estimate genetic effect (binary traits only)
+FORMAT	AC	A	Integer	Alternative allele count in the trait subset
+FORMAT	OR	A	Float	Odds ratio of effect
+FORMAT	SES	A	Float	Stadardised Effect size
+FORMAT	SSE	A	Float	Standard error of standardised effect size 
+FORMAT	EZ	A	Float	Z-score provided if it was used to derive the ES and SE fields
+FORMAT	SI	A	Float	Accuracy score of association statistics imputation
+FORMAT	IS	A	Float	I-squared heterogeneity for meta-GWAS

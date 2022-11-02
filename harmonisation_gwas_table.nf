@@ -511,7 +511,7 @@ workflow lifebitai_harmonisation_gwas_table{
         ch_snplocs_grch37 =  Channel.value(file(params.snplocs_grch37))
 
         // Channels for scripts
-        ch_field_descriptions              = Channel.fromPath("${projectDir}/assets/field_descriptions.tsv")
+        ch_field_descriptions              = Channel.fromPath(params.field_descriptions)
 
         munge_gwas_table(ch_gwas_tables,
                             ch_field_descriptions,
