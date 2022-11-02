@@ -490,6 +490,10 @@ workflow lifebitai_harmonisation_ebi{
         ch_collapse_vcf_script           = Channel.fromPath("${projectDir}/bin/collapse_vcf.py")
         ch_munge_ebi_funcs_script        = Channel.fromPath("${projectDir}/bin/munge_funcs.R")
 
+        ch_studies =  ch_input.splitCsv()
+                                .flatten()
+                                .take(params.take_n_studies) 
+
         fetch_from_ebi(ch_input, ch_ebi_script)
 
         munge_ebi(fetch_from_ebi.out.sumstats,
@@ -574,9 +578,7 @@ workflow {
     // Define Channels from input
     ch_input = Channel.fromPath(params.input)
         .ifEmpty { exit 1, "Cannot find input file containing study IDs: ${params.input}" }
-        .splitCsv()
-        .flatten()
-        .take(params.take_n_studies) //default is -1 i.e. take all files (but param is useful for testing with fewer files)
+    //default is -1 i.e. take all files (but param is useful for testing with fewer files)
 
     lifebitai_harmonisation_ebi(ch_input)
 }
