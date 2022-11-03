@@ -369,8 +369,8 @@ process create_report {
   """
   cp -r ${report_dir}/* .
   cp ${study_id}/* .
-  mv DTable.R ./DTable.R
-  mv style.css ./style.css
+  mv DTable.R local_DTable.R
+  mv style.css local_style.css
   # Skip when no plots were generated due to lack of FRQ column
   if [ -f "${study_id}_no_plots.txt" ]; then
     touch multiqc_report.html
