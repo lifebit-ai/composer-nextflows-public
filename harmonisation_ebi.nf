@@ -369,8 +369,8 @@ process create_report {
   """
   cp -r ${report_dir}/* .
   cp ${study_id}/* .
-  mv harmonisation-ebi-1-DTable.R DTable.R
-  mv harmonisation-ebi-1-style.css style.css
+  mv DTable.R ./DTable.R
+  mv style.css ./style.css
   # Skip when no plots were generated due to lack of FRQ column
   if [ -f "${study_id}_no_plots.txt" ]; then
     touch multiqc_report.html
