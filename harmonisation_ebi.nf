@@ -381,8 +381,8 @@ process create_report {
     cat file_list.txt | tr "\n" "," | sed 's/,\$//g' > file_list1.txt
     # Generates the report
     Rscript -e "rmarkdown::render('report.Rmd', params = list(`cat file_list1.txt`))"
-    cp report.html multiqc_report.html
-    mv report.html ${study_id}_multiqc_report.html
+    cp harmonisation-ebi-1-report.html multiqc_report.html
+    mv harmonisation-ebi-1-report.html ${study_id}_multiqc_report.html
   fi
   """
 }
