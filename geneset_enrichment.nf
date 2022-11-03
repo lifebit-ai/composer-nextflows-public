@@ -216,11 +216,10 @@ process magma_gene_analysis {
 
     script:
     // optional params for gene analysis
-    if (params.summary_stats) pval = "--pval snp_p.tsv N=" + params.sample_size else pval=''
+    pval = "--pval snp_p.tsv N=" + params.sample_size
     if(params.seed) seed = "--seed " + params.seed else seed=''
     if(params.snp_max_maf) snp_max_maf = "snp-max-maf=" + params.snp_max_maf else snp_max_maf=''
     if(params.snp_max_mac) snp_max_mac = "snp-max-mac=" + params.snp_max_mac else snp_max_mac=''
-    if(params.burden) burden = "--burden " + params.burden else burden = ''
     if(params.big_data) big_data = "--big-data" + params.big_data else big_data=''
     if(params.gene_model) gene_model = "--gene-model " + params.gene_model else gene_model=''
     // exceptions with summary stats file
