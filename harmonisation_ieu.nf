@@ -368,6 +368,8 @@ process create_report {
   """
   cp -r ${report_dir}/* .
   cp ${study_id}/* .
+  mv DTable.R DTable_local.R
+  mv style.css style_local.css
   # Skip when no plots were generated due to lack of FRQ column
   if [ -f "${study_id}_no_plots.txt" ]; then
     touch multiqc_report.html
@@ -378,8 +380,8 @@ process create_report {
     cat file_list.txt | tr "\n" "," | sed 's/,\$//g' > file_list1.txt
     # Generates the report
     Rscript -e "rmarkdown::render('report.Rmd', params = list(`cat file_list1.txt`))"
-    cp report.html multiqc_report.html
-    mv report.html ${study_id}_multiqc_report.html
+    cp harmonisation-ebi-1-report.html multiqc_report.html
+    mv harmonisation-ebi-1-report.html ${study_id}_multiqc_report.html
   fi
   """
 }
