@@ -394,8 +394,8 @@ process create_report {
     cat file_list.txt | tr "\n" "," | sed 's/,\$//g' > file_list1.txt
     # Generates the report
     Rscript -e "rmarkdown::render('report.Rmd', params = list(`cat file_list1.txt`))"
-    cp harmonisation-ebi-1-report.html multiqc_report.html
-    mv harmonisation-ebi-1-report.html ${study_id}_multiqc_report.html
+    cp harmonisation-gwas-vcf-1-report.html multiqc_report.html
+    mv harmonisation-gwas-vcf-1-report.html ${study_id}_multiqc_report.html
   fi
   """
 }
@@ -575,7 +575,7 @@ workflow lifebitai_harmonisation_gwas_vcf{
             vcf2hail(ch_filtered_sumstats)
         }
 
-        ch_report_dir = Channel.value(file("${projectDir}/bin/report"))
+        ch_report_dir = Channel.value(file("${projectDir}/bin/"))
 
         create_report(make_qc_plots.out.qc_plots,
                         ch_report_dir)
