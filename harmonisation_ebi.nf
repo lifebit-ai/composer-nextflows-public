@@ -552,7 +552,7 @@ workflow lifebitai_harmonisation_ebi{
             vcf2hail(ch_filtered_sumstats)
         }
 
-        ch_report_dir = Channel.value(file("${projectDir}/bin/report"))
+        ch_report_dir = Channel.value(file("${projectDir}/bin/"))
 
         create_report(make_qc_plots.out.qc_plots,
                         ch_report_dir)
