@@ -223,7 +223,7 @@ process magma_gene_analysis {
     if(params.big_data) big_data = "--big-data" + params.big_data else big_data=''
     if(params.gene_model) gene_model = "--gene-model " + params.gene_model else gene_model=''
     // exceptions with summary stats file
-    if (params.summary_stats && params.gene_model == "linreg") println "Workflow Error: '--gene_model linreg' can't be used with summary stats file" exit 0
+    if (params.gene_model == "linreg") println "Workflow Error: '--gene_model linreg' can't be used with summary stats file" exit 0
     """
     # change the names. It should be equal for all (for the purpose of upload timestamp)
     mv ${bed} plink_file.bed
@@ -240,7 +240,6 @@ process magma_gene_analysis {
         snp-max-miss=${params.snp_max_miss} \
         snp-diff=${params.snp_diff} \
         ${seed} \
-        ${burden} \
         ${big_data} \
         ${gene_model} \
         --gene-annot ${magma_anot} \
