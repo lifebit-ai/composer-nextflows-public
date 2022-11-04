@@ -493,8 +493,8 @@ workflow lifebitai_harmonisation_gwas_table{
         }
 
         if (params.input_type == 'list' ) {
-                ch_gwas_tables = Channel.fromPath(params.input)
-                                        .ifEmpty { exit 1, "Cannot find input file containing GWAS Table paths: ${params.input}" }
+                ch_gwas_tables = Channel.fromPath(params.gwas_tables)
+                                        .ifEmpty { exit 1, "Cannot find input file containing GWAS Table paths: ${params.gwas_tables}" }
                                         .splitCsv()
                                         .flatten()
                                         .map { table -> file(table) }
