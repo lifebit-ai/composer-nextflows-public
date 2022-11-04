@@ -90,6 +90,7 @@ process munge_ieu {
 
     input:
     tuple val(study_id), path(sumstats), path(metadata)
+    each path('field_descriptions.tsv')
     each path(snplocs_grch37)
     each path(snplocs_grch38)
 
@@ -470,12 +471,12 @@ workflow lifebitai_harmonisation_ieu{
         projectDir = workflow.projectDir
 
         // Channel for omop vocabulary
-        ch_omop_vocabulary = Channel.value(file(params.omop_vocabulary))
+        ch_omop_vocabulary     = Channel.value(file(params.omop_vocabulary))
 
         // Channels for SNPlocs
-        ch_snplocs_grch38 =  Channel.value(file(params.snplocs_grch38))
-        ch_snplocs_grch37 =  Channel.value(file(params.snplocs_grch37))
-        ch_field_descriptions              = Channel.fromPath(params.field_descriptions)
+        ch_snplocs_grch38      =  Channel.value(file(params.snplocs_grch38))
+        ch_snplocs_grch37      =  Channel.value(file(params.snplocs_grch37))
+        ch_field_descriptions  =  Channel.fromPath(params.field_descriptions)
 
         ch_studies =  ch_input.splitCsv()
                                 .flatten()
