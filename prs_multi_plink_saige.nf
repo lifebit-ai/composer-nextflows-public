@@ -18,7 +18,6 @@ prsice                    : ${params.prsice}
 genotype_data             : ${params.genotype_data}
 pheno_metadata            : ${params.pheno_metadata}
 target_plink_files_dir    : ${params.target_plink_dir}
-target_pheno              : ${params.target_pheno}
 binary_trait              : ${params.binary_trait}
 calc_prs_percentiles      : ${params.calc_prs_percentiles}
 filter_by_percentiles     : ${params.filter_by_percentiles}
